@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bro's Burger — Commander en ligne</title>
+<meta name="description" content="Commandez vos burgers, philly, poutines et plus chez Bro's Burger, Camp6 Ain El Bia, Oran.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <a href="#hero" class="brand">BRO'S<span>BURGER</span></a>
+    <nav class="topnav">
+      <a href="#menu">Menu</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <button class="cart-pill" id="cartToggleBtn" aria-label="Voir le panier">
+      <span class="cart-pill-icon">🛒</span>
+      <span class="cart-pill-count" id="cartCountTop">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-content">
+    <p class="eyebrow">📍 Camp6, Ain El Bia — Oran</p>
+    <h1 class="hero-title">BRO'S<span>BURGER</span></h1>
+    <p class="tagline">Des burgers frais, généreux et préparés avec passion.<br>Composez votre commande, on s'occupe du reste.</p>
+    <a href="#menu" class="btn-primary">Voir le menu ↓</a>
+  </div>
+</section>
+
+<!-- MAIN LAYOUT -->
+<main class="layout" id="menu">
+
+  <div class="menu-column">
+    <div id="menuContainer"><!-- injected by script.js --></div>
+  </div>
+
+  <aside class="cart-column">
+    <div class="ticket" id="ticket">
+      <div class="ticket-notch" aria-hidden="true"></div>
+      <div class="ticket-body">
+        <h2 class="ticket-title">🛒 Mon Panier</h2>
+
+        <div class="ticket-items" id="cartItems">
+          <p class="cart-empty" id="cartEmptyMsg">Votre panier est vide.<br>Ajoutez un produit pour commencer 👀</p>
+        </div>
+
+        <div class="ticket-divider" id="ticketDivider" hidden></div>
+
+        <div class="ticket-total-row" id="ticketTotalRow" hidden>
+          <span>TOTAL</span>
+          <span id="cartTotal">0 DA</span>
+        </div>
+
+        <div class="ticket-actions" id="ticketActions" hidden>
+          <button class="btn-ghost" id="editBtn" type="button">Modifier</button>
+          <button class="btn-ghost btn-danger" id="clearBtn" type="button">Vider</button>
+          <button class="btn-confirm" id="orderBtn" type="button">Commander</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+</main>
+
+<!-- MOBILE FLOATING CART BUTTON -->
+<button class="cart-fab" id="cartFab" hidden>
+  <span class="cart-fab-icon">🛒</span>
+  <span class="cart-fab-info">
+    <span class="cart-fab-count" id="cartFabCount">0 article</span>
+    <span class="cart-fab-total" id="cartFabTotal">0 DA</span>
+  </span>
+  <span class="cart-fab-arrow">Voir ▲</span>
+</button>
+
+<!-- MOBILE DRAWER BACKDROP -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+<!-- FOOTER -->
+<footer class="site-footer" id="contact">
+  <p class="footer-brand">BRO'S<span>BURGER</span></p>
+  <p><a href="tel:0563522428">📞 0563 52 24 28</a></p>
+  <p>📍 Camp6, Ain El Bia, Oran, Algérie</p>
+  <p>🕒 Lundi – Samedi : 11h – 22h</p>
+  <p class="muted">© 2026 Bro's Burger — Tous droits réservés</p>
+</footer>
+
+<!-- ORDER MODAL -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" type="button" aria-label="Fermer">✕</button>
+    <h2 id="modalTitle">Vos informations</h2>
+    <p class="modal-sub">Il nous faut juste ça pour préparer et livrer votre commande.</p>
+
+    <form id="orderForm" novalidate>
+      <label>Nom *
+        <input type="text" name="nom" id="fieldNom" autocomplete="family-name" required>
+      </label>
+      <label>Prénom *
+        <input type="text" name="prenom" id="fieldPrenom" autocomplete="given-name" required>
+      </label>
+      <label>Téléphone *
+        <input type="tel" name="telephone" id="fieldTelephone" autocomplete="tel" placeholder="0555 55 55 55" required>
+      </label>
+      <label>Adresse *
+        <textarea name="adresse" id="fieldAdresse" rows="2" placeholder="Quartier, rue, repère..." required></textarea>
+      </label>
+      <label>Remarque <span class="optional">(optionnel)</span>
+        <textarea name="remarque" id="fieldRemarque" rows="2" placeholder="Sans oignon, allergie, étage, etc."></textarea>
+      </label>
+
+      <p class="form-error" id="formError" hidden></p>
+
+      <button type="submit" class="btn-confirm btn-block">Valider ma commande ✓</button>
+      <p class="modal-note">Vous allez être redirigé vers WhatsApp avec votre commande déjà écrite.<br>Appuyez sur <strong>Envoyer ➤</strong> pour la confirmer.</p>
+    </form>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
