@@ -2,13 +2,13 @@
    BRO'S BURGER — ordering logic
    ========================================================== */
 
-const WHATSAPP_NUMBER = "213665941989"; // 0563 52 24 28, international format (no +, needed by wa.me)
+const WHATSAPP_NUMBER = "213564222354"; // 0563 52 24 28, international format (no +, needed by wa.me)
 
 /* ---------- OPENING HOURS (Algeria time, Africa/Algiers = fixed UTC+1, no DST) ---------- */
 const OPENING_HOURS = {
   // Sunday(0) - Thursday(4): lunch + dinner
   standard: [
-    { start: 11 * 60 + 30, end: 15 * 60,      label: "11h30 – 15h00" },
+    { start: 1* 60 + 30, end: 15 * 60,      label: "1h30 – 15h00" },
     { start: 18 * 60 + 30, end: 23 * 60 + 30, label: "18h30 – 23h30" },
   ],
   // Friday(5) - Saturday(6): dinner only, opens earlier, no lunch service
