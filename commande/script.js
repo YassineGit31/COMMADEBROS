@@ -9,7 +9,7 @@ const OPENING_HOURS = {
   // Sunday(0) - Thursday(4): lunch + dinner
   standard: [
     { start: 11* 60 + 30, end: 15 * 60,      label: "11h30 – 15h00" },
-    { start: 18 * 60 , end: 23 * 60 + 30, label: "18h00 – 23h30" },
+    { start: 18* 60 , end: 23 * 60 + 30, label: "18h00 – 23h30" },
   ],
   // Friday(5) - Saturday(6): dinner only, opens earlier, no lunch service
   weekend: [
