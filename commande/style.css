@@ -491,6 +491,26 @@ input,textarea{ font-family:inherit; }
   margin:0 0 6px;
 }
 .footer-brand span{ color:var(--accent); margin-left:.2ch; }
+
+.social-links{
+  display:flex; justify-content:center; gap:14px;
+  margin:2px 0 10px;
+}
+.social-link{
+  display:flex; align-items:center; justify-content:center;
+  width:42px; height:42px; border-radius:999px;
+  border:1px solid var(--border-soft);
+  color:var(--text-muted);
+  transition:border-color .25s ease, color .25s ease, transform .25s ease, background .25s ease;
+}
+.social-link svg{ width:19px; height:19px; }
+.social-link:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:var(--accent-soft);
+  transform:translateY(-3px);
+}
+
 .site-footer a:hover{ color:var(--accent); }
 .site-footer .muted{ color:var(--text-faint); font-size:.78rem; margin-top:10px; }
 
