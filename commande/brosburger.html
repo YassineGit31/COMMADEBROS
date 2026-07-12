@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- ✅ EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -44,29 +46,23 @@
 
 <!-- MAIN LAYOUT -->
 <main class="layout" id="menu">
-
   <div class="menu-column">
     <div id="menuContainer"><!-- injected by script.js --></div>
   </div>
-
   <aside class="cart-column">
     <div class="ticket" id="ticket">
       <div class="ticket-notch" aria-hidden="true"></div>
       <div class="ticket-body">
         <h2 class="ticket-title">🛒 Mon Panier</h2>
-
         <div class="ticket-items" id="cartItems">
           <p class="cart-empty" id="cartEmptyMsg">Votre panier est vide.<br>Ajoutez un produit pour commencer 👀</p>
         </div>
-
         <div class="ticket-divider" id="ticketDivider" hidden></div>
-
         <div class="ticket-total-row" id="ticketTotalRow" hidden>
           <span>TOTAL</span>
           <span id="cartTotal">0 DA</span>
         </div>
         <p class="ticket-delivery-hint" id="ticketDeliveryHint" hidden>+ frais de livraison selon votre zone</p>
-
         <div class="ticket-actions" id="ticketActions" hidden>
           <button class="btn-ghost" id="editBtn" type="button">Modifier</button>
           <button class="btn-ghost btn-danger" id="clearBtn" type="button">Vider</button>
@@ -75,7 +71,6 @@
       </div>
     </div>
   </aside>
-
 </main>
 
 <!-- MOBILE FLOATING CART BUTTON -->
@@ -94,7 +89,6 @@
 <!-- FOOTER -->
 <footer class="site-footer" id="contact">
   <p class="footer-brand">BRO'S<span>BURGER</span></p>
-
   <div class="social-links">
     <a class="social-link" href="https://www.instagram.com/bros_burger31" target="_blank" rel="noopener" aria-label="Instagram">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/></svg>
@@ -106,11 +100,10 @@
       <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16.5 3c.4 2.1 1.9 3.6 4 3.9v2.8c-1.5-.1-2.9-.6-4-1.5v6.6c0 3.1-2.5 5.6-5.6 5.6S5.3 17.9 5.3 14.8s2.5-5.6 5.6-5.6c.4 0 .8 0 1.1.1v2.9c-.4-.1-.7-.2-1.1-.2-1.5 0-2.7 1.2-2.7 2.7s1.2 2.7 2.7 2.7 2.7-1.2 2.7-2.7V3h2.9z"/></svg>
     </a>
   </div>
-
   <p><a href="tel:0563522428">📞 0563 52 24 28</a></p>
   <p><a href="https://maps.app.goo.gl/mW3aTxrk6tTGoNfS7" target="_blank" rel="noopener">📍 Camp6, Ain El Bia, Oran, Algérie</a></p>
-  <p>🕒 Dimanche – Jeudi : <span id="footerHours">11h30–15h00 et 18h30–23h30</span><br>
-     Vendredi – Samedi : <span id="footerHoursWeekend">18h00–23h30</span></p>
+  <p>🕒 Dimanche – Jeudi : <span id="footerHours"></span><br>
+     Vendredi – Samedi : <span id="footerHoursWeekend"></span></p>
   <p class="muted">© 2026 Bro's Burger — Tous droits réservés</p>
 </footer>
 
@@ -123,7 +116,6 @@
     <div id="formStep">
       <h2 id="modalTitle">Vos informations</h2>
       <p class="modal-sub">Il nous faut juste ça pour préparer et livrer votre commande.</p>
-
       <form id="orderForm" novalidate>
         <label>Nom *
           <input type="text" name="nom" id="fieldNom" autocomplete="family-name" required>
@@ -161,25 +153,23 @@
         <label>Remarque <span class="optional">(optionnel)</span>
           <textarea name="remarque" id="fieldRemarque" rows="2" placeholder="Sans oignon, allergie, étage, etc."></textarea>
         </label>
-
         <p class="form-error" id="formError" hidden></p>
-
         <button type="submit" class="btn-confirm btn-block" id="submitOrderBtn">Valider ma commande ✓</button>
       </form>
     </div>
 
-    <!-- STEP 2: WhatsApp opened, awaiting final tap -->
+    <!-- STEP 2: success -->
     <div id="successStep" hidden>
-      <h2>Presque fini ! 📲</h2>
-      <p class="modal-sub">WhatsApp vient de s'ouvrir avec votre commande déjà écrite. Appuyez sur <strong>Envoyer ➤</strong> là-bas pour la confirmer.</p>
-
+      <div style="text-align:center; font-size: 3rem; margin-bottom: 1rem;">✅</div>
+      <h2>Commande envoyée !</h2>
+      <p class="modal-sub">
+        📧 Un email a été envoyé automatiquement à Bro's Burger.<br><br>
+        📲 WhatsApp vient de s'ouvrir — appuyez sur <strong>Envoyer ➤</strong> pour confirmer votre commande.
+      </p>
       <pre class="order-summary-box" id="orderSummaryBox"></pre>
-
-      <p class="modal-note">Message envoyé ! Votre commande est confirmée dès que vous voyez que nous avons répondu à votre message.</p>
-
+      <p class="modal-note">Merci de votre confiance 🍔 Bro's Burger vous prépare ça avec amour !</p>
       <button type="button" class="btn-confirm btn-block" id="closeSuccessBtn">Fermer</button>
     </div>
-
   </div>
 </div>
 
