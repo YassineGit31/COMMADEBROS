@@ -5,10 +5,17 @@
 const WHATSAPP_NUMBER = "213665941989"; // 0563 52 24 28, international format (no +, needed by wa.me)
 
 /* ---------- OPENING HOURS (Algeria time, Africa/Algiers = fixed UTC+1, no DST) ---------- */
-const OPENING_HOURS = [
-  { start: 11 * 60 + 30, end: 15 * 60,      label: "11h30 – 15h00" },
-  { start: 18 * 60 + 30, end: 23* 60 + 30, label: "18h30 – 23h30" },
-];
+const OPENING_HOURS = {
+  // Sunday(0) - Thursday(4): lunch + dinner
+  standard: [
+    { start: 11 * 60 + 30, end: 15 * 60,      label: "11h30 – 15h00" },
+    { start: 18 * 60 + 30, end: 23 * 60 + 30, label: "18h30 – 23h30" },
+  ],
+  // Friday(5) - Saturday(6): dinner only, opens earlier, no lunch service
+  weekend: [
+    { start: 18 * 60, end: 23 * 60 + 30, label: "18h00 – 23h30" },
+  ],
+};
 
 function getAlgeriaMinutes(){
   const parts = new Intl.DateTimeFormat('en-GB', {
@@ -23,9 +30,26 @@ function getAlgeriaMinutes(){
   return hour * 60 + minute;
 }
 
+function getAlgeriaWeekday(){
+  // 0 = Sunday ... 6 = Saturday, based on Africa/Algiers local date
+  const wd = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Algiers',
+    weekday: 'short',
+  }).formatToParts(new Date()).find(p => p.type === 'weekday').value;
+  return { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 }[wd];
+}
+
+function isWeekendSchedule(day){
+  return day === 5 || day === 6; // Friday, Saturday
+}
+
+function getTodayHours(){
+  return isWeekendSchedule(getAlgeriaWeekday()) ? OPENING_HOURS.weekend : OPENING_HOURS.standard;
+}
+
 function isShopOpen(){
   const now = getAlgeriaMinutes();
-  return OPENING_HOURS.some(r => {
+  return getTodayHours().some(r => {
     if (r.end < r.start){
       // range crosses midnight, e.g. 18:30 -> 02:00
       return now >= r.start || now <= r.end;
@@ -33,6 +57,25 @@ function isShopOpen(){
     return now >= r.start && now <= r.end;
   });
 }
+
+/* ---------- DELIVERY FEES BY ZONE ---------- */
+const DELIVERY_FEES = {
+  "Camp 02": 100,
+  "Camp 03": 150,
+  "Camp 04": 100,
+  "Camp 05": 100,
+  "Camp 06": 100,
+  "Camp 07": 150,
+  "Camp 08": 200,
+  "Camp 09": 200,
+  "Finix": 200,
+  "Betioua": 200,
+  "Ain El Bia": 100,
+  "CHHAYRIA": 300,
+  "TOSYALI": 400,
+  "Arzew": 400,
+  // "Autre" is intentionally absent — no fixed fee, confirmed manually
+};
 
 /* ---------- MENU DATA (single source of truth for prices) ---------- */
 const MENU = [
@@ -52,25 +95,25 @@ const MENU = [
     category: "Sandwich Philly",
     icon: "🥪",
     items: [
-      { id:"philly-poulet",   name:"Philly Poulet Pané",     price:400, desc:["Poulet pané","Fromage fondu","Pain philly grillé"] },
-      { id:"philly-escalope", name:"Philly Escalope Grillée",price:400, desc:["Escalope grillée","Fromage fondu","Pain philly grillé"] },
-      { id:"philly-boeuf",    name:"Philly Bœuf Haché",      price:550, desc:["Bœuf haché","Fromage fondu","Pain philly grillé"] },
-      { id:"philly-mix",      name:"Philly Mix",             price:600, desc:["Poulet & bœuf haché","Fromage fondu","Pain philly grillé"] },
-      { id:"philly-supreme",  name:"Philly Suprême",         price:650, desc:["Poulet, bœuf & escalope","Fromage fondu","Pain philly grillé"] },
+      { id:"philly-poulet",   name:"Philly Poulet Pané",     price:400, desc:["Poulet pané","Gouda","Pain brioche","Sauce Bros & fromagère"] },
+      { id:"philly-escalope", name:"Philly Escalope Grillée",price:400, desc:["Escalope grillée","Gouda","Pain brioche","Sauce Bros & fromagère"] },
+      { id:"philly-boeuf",    name:"Philly Bœuf Haché",      price:550, desc:["Bœuf haché","Gouda","Pain brioche","Sauce Bros & fromagère"] },
+      { id:"philly-mix",      name:"Philly Mix",             price:600, desc:["Poulet pané & bœuf haché","Gouda","Pain brioche","Sauce Bros & fromagère"] },
+      { id:"philly-supreme",  name:"Philly Suprême",         price:650, desc:["Bœuf & poulet fumé","Camembert & cheddar","Pain brioche","Sauce Bros & fromagère"] },
     ]
   },
   {
     category: "Poutines",
     icon: "🍟",
     items: [
-      { id:"poutine-poulet",   name:"Poutine Poulet Pané",      price:450, desc:["Frites","Poulet pané","Sauce fromagère"] },
-      { id:"poutine-escalope", name:"Poutine Escalope Grillée", price:450, desc:["Frites","Escalope grillée","Sauce fromagère"] },
-      { id:"poutine-fumato",   name:"Poutine Fumato",           price:450, desc:["Frites","Viande fumée","Sauce fromagère"] },
-      { id:"poutine-boeuf",    name:"Poutine Bœuf Haché",       price:550, desc:["Frites","Bœuf haché","Sauce fromagère"] },
-      { id:"poutine-mix",      name:"Poutine Mix",              price:600, desc:["Frites","Poulet & bœuf","Sauce fromagère"] },
-      { id:"poutine-pouletx2", name:"Poutine Poulet x2",        price:650, desc:["Frites","Double poulet pané","Sauce fromagère"] },
-      { id:"poutine-mixx2",    name:"Poutine Mix x2",           price:800, desc:["Frites","Double poulet & bœuf","Sauce fromagère"] },
-      { id:"poutine-boeufx2",  name:"Poutine Bœuf x2",          price:750, desc:["Frites","Double bœuf haché","Sauce fromagère"] },
+      { id:"poutine-poulet",   name:"Poutine Poulet Pané",      price:450, desc:["Frites","Poulet pané","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
+      { id:"poutine-escalope", name:"Poutine Escalope Grillée", price:450, desc:["Frites","Escalope grillée","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
+      { id:"poutine-fumato",   name:"Poutine Fumato",           price:450, desc:["Frites","Escalope grillée","Poulet fumé","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
+      { id:"poutine-boeuf",    name:"Poutine Bœuf Haché",       price:550, desc:["Frites","Bœuf haché","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
+      { id:"poutine-mix",      name:"Poutine Mix",              price:600, desc:["Frites","Poulet & bœuf","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
+      { id:"poutine-pouletx2", name:"Poutine Poulet x2",        price:650, desc:["Frites","Double poulet pané","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
+      { id:"poutine-mixx2",    name:"Poutine Mix x2",           price:800, desc:["Frites","Double poulet & bœuf","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
+      { id:"poutine-boeufx2",  name:"Poutine Bœuf x2",          price:750, desc:["Frites","Double bœuf haché","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
     ]
   },
   {
@@ -109,7 +152,10 @@ const MENU = [
     icon: "➕",
     isSupplement: true,
     items: [
-      { id:"supp-fromage",   name:"Fromage",        price:100 },
+      { id:"supp-fromage-gouda",     name:"Fromage (Gouda)",     price:100 },
+      { id:"supp-fromage-camembert", name:"Fromage (Camembert)", price:100 },
+      { id:"supp-fromage-mozza",     name:"Fromage (Mozza)",     price:100 },
+      { id:"supp-fromage-gruyere",   name:"Fromage (Gruyère)",   price:100 },
       { id:"supp-poulet",    name:"Poulet",         price:150 },
       { id:"supp-viande",    name:"Viande hachée",  price:200 },
       { id:"supp-ananas",    name:"Ananas",         price:150 },
@@ -319,6 +365,7 @@ function renderCart(){
   const totalRow = document.getElementById('ticketTotalRow');
   const divider = document.getElementById('ticketDivider');
   const actions = document.getElementById('ticketActions');
+  const deliveryHint = document.getElementById('ticketDeliveryHint');
 
   itemsEl.innerHTML = '';
 
@@ -327,6 +374,7 @@ function renderCart(){
     totalRow.hidden = true;
     divider.hidden = true;
     actions.hidden = true;
+    deliveryHint.hidden = true;
   } else {
     cart.forEach(row => {
       const p = PRODUCTS[row.id];
@@ -357,6 +405,7 @@ function renderCart(){
     totalRow.hidden = false;
     divider.hidden = false;
     actions.hidden = false;
+    deliveryHint.hidden = false;
   }
 
   // top pill + mobile fab
@@ -430,11 +479,24 @@ modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop)
 document.getElementById('closeSuccessBtn').addEventListener('click', closeModal);
 
 document.getElementById('fieldAdresseZone').addEventListener('change', (e) => {
-  const isOther = e.target.value === 'Autre';
+  const zone = e.target.value;
+  const isOther = zone === 'Autre';
   const otherLabel = document.getElementById('fieldAdresseOtherLabel');
   otherLabel.hidden = !isOther;
   if (!isOther) document.getElementById('fieldAdresseOther').value = '';
+  updateDeliveryFeeNote(zone);
 });
+
+function updateDeliveryFeeNote(zone){
+  const note = document.getElementById('deliveryFeeNote');
+  if (!zone){ note.textContent = ''; return; }
+  const fee = DELIVERY_FEES[zone];
+  if (fee !== undefined){
+    note.textContent = `🛵 Livraison ${zone} : ${formatDA(fee)} — Total : ${formatDA(cartTotal() + fee)}`;
+  } else {
+    note.textContent = '🛵 Frais de livraison à confirmer avec vous (zone hors liste)';
+  }
+}
 
 document.getElementById('orderForm').addEventListener('submit', (e) => {
   e.preventDefault();
@@ -473,7 +535,7 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
   }
 
   errorEl.hidden = true;
-  const orderText = buildOrderText({ nom, prenom, telephone, adresse, remarque });
+  const orderText = buildOrderText({ nom, prenom, telephone, adresse, zone, remarque });
 
   sendOrderToWhatsapp(orderText);
   document.getElementById('orderSummaryBox').textContent = orderText;
@@ -482,9 +544,10 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
   closeDrawer();
   document.getElementById('orderForm').reset();
   document.getElementById('fieldAdresseOtherLabel').hidden = true;
+  document.getElementById('deliveryFeeNote').textContent = '';
 });
 
-function buildOrderText({ nom, prenom, telephone, adresse, remarque }){
+function buildOrderText({ nom, prenom, telephone, adresse, zone, remarque }){
   const lines = [];
   lines.push('🍔 NOUVELLE COMMANDE');
   lines.push('');
@@ -500,7 +563,16 @@ function buildOrderText({ nom, prenom, telephone, adresse, remarque }){
     lines.push(`${row.qty} × ${p.name}`);
   });
   lines.push('────────────');
-  lines.push(`TOTAL : ${formatDA(cartTotal())}`);
+  const itemsTotal = cartTotal();
+  const fee = DELIVERY_FEES[zone];
+  lines.push(`Sous-total : ${formatDA(itemsTotal)}`);
+  if (fee !== undefined){
+    lines.push(`Livraison (${zone}) : ${formatDA(fee)}`);
+    lines.push(`TOTAL : ${formatDA(itemsTotal + fee)}`);
+  } else {
+    lines.push('Livraison : à confirmer');
+    lines.push(`TOTAL (hors livraison) : ${formatDA(itemsTotal)}`);
+  }
   lines.push('');
   lines.push(`Remarque : ${remarque ? remarque : 'Aucune'}`);
   return lines.join('\n');
@@ -523,11 +595,15 @@ window.addEventListener('scroll', () => {
 
 /* ---------- RENDER OPENING HOURS TEXT (single source of truth: OPENING_HOURS) ---------- */
 function renderOpeningHoursText(){
-  document.getElementById('footerHours').textContent =
-    OPENING_HOURS.map(r => r.label).join(' et ');
+  const standardLabel = OPENING_HOURS.standard.map(r => r.label).join(' et ');
+  const weekendLabel = OPENING_HOURS.weekend.map(r => r.label).join(' et ');
+
+  document.getElementById('footerHours').textContent = standardLabel;
+  document.getElementById('footerHoursWeekend').textContent = weekendLabel;
 
   document.getElementById('hoursBox').innerHTML =
-    OPENING_HOURS.map(r => `<p>🕐 ${r.label}</p>`).join('');
+    `<p>🕐 Dim – Jeu : ${standardLabel}</p>` +
+    `<p>🕐 Ven – Sam : ${weekendLabel}</p>`;
 }
 renderOpeningHoursText();
 
