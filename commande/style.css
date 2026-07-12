@@ -402,6 +402,9 @@ input,textarea{ font-family:inherit; }
   font-size:1.15rem; margin:14px 0 18px;
 }
 .ticket-total-row span:last-child{ color:var(--accent); font-variant-numeric:tabular-nums; }
+.ticket-delivery-hint{
+  margin:-12px 0 18px; font-size:.72rem; color:var(--text-faint); text-align:right;
+}
 
 .ticket-actions{ display:flex; gap:8px; flex-wrap:wrap; }
 .btn-ghost{
@@ -548,6 +551,10 @@ input,textarea{ font-family:inherit; }
   cursor:pointer;
 }
 #orderForm select option{ background:var(--bg-soft); color:var(--text); }
+.delivery-fee-note{
+  font-size:.8rem; font-weight:700; color:var(--accent);
+  margin:-6px 0 0; min-height:1.1em;
+}
 #orderForm input:focus, #orderForm textarea:focus, #orderForm select:focus{
   border-color:var(--accent); outline:none;
 }
