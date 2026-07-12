@@ -2,7 +2,37 @@
    BRO'S BURGER — ordering logic
    ========================================================== */
 
-const WHATSAPP_NUMBER = "213665941989"; // 0563 52 24 28 in international format
+const WHATSAPP_NUMBER = "213665941989"; // 0563 52 24 28, international format (no +, needed by wa.me)
+
+/* ---------- OPENING HOURS (Algeria time, Africa/Algiers = fixed UTC+1, no DST) ---------- */
+const OPENING_HOURS = [
+  { start: 11 * 60 + 30, end: 15 * 60,      label: "11h30 – 15h00" },
+  { start: 18 * 60 + 30, end: 23* 60 + 30, label: "18h30 – 23h30" },
+];
+
+function getAlgeriaMinutes(){
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Algiers',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+  let hour = parseInt(parts.find(p => p.type === 'hour').value, 10);
+  const minute = parseInt(parts.find(p => p.type === 'minute').value, 10);
+  if (hour === 24) hour = 0; // some locales report midnight as 24:00
+  return hour * 60 + minute;
+}
+
+function isShopOpen(){
+  const now = getAlgeriaMinutes();
+  return OPENING_HOURS.some(r => {
+    if (r.end < r.start){
+      // range crosses midnight, e.g. 18:30 -> 02:00
+      return now >= r.start || now <= r.end;
+    }
+    return now >= r.start && now <= r.end;
+  });
+}
 
 /* ---------- MENU DATA (single source of truth for prices) ---------- */
 const MENU = [
@@ -181,6 +211,7 @@ function renderProductCard(item){
   });
   const addBtn = card.querySelector('.btn-add');
   addBtn.addEventListener('click', () => {
+    if (!isShopOpen()){ showClosedNotice(); return; }
     const qty = parseInt(qtyValue.textContent, 10);
     addToCart(item.id, qty);
     qtyValue.textContent = '1';
@@ -213,6 +244,7 @@ function renderSupplementPanel(cat){
   addBtn.className = 'btn-add';
   addBtn.textContent = 'Ajouter les suppléments sélectionnés';
   addBtn.addEventListener('click', () => {
+    if (!isShopOpen()){ showClosedNotice(); return; }
     const checked = panel.querySelectorAll('input[type="checkbox"]:checked');
     if (!checked.length) return;
     checked.forEach(cb => { addToCart(cb.value, 1); cb.checked = false; });
@@ -304,7 +336,7 @@ function renderCart(){
         <span class="cart-row-qty">${row.qty}×</span>
         <span class="cart-row-stepper">
           <button type="button" class="mini-qty-btn" data-id="${row.id}" data-delta="-1">−</button>
-          <span class="cart-row-qty" style="min-width:16px;text-align:center;">${row.qty}</span>
+          <span class="cart-row-qty-value">${row.qty}</span>
           <button type="button" class="mini-qty-btn" data-id="${row.id}" data-delta="1">+</button>
         </span>
         <span class="cart-row-name">${p.name}</span>
@@ -367,33 +399,64 @@ document.getElementById('clearBtn').addEventListener('click', () => {
 });
 document.getElementById('orderBtn').addEventListener('click', () => {
   if (cart.length === 0) return;
+  if (!isShopOpen()){ showClosedNotice(); return; }
   openModal();
 });
 
 /* ---------- ORDER MODAL ---------- */
 const modalBackdrop = document.getElementById('modalBackdrop');
+const formStep = document.getElementById('formStep');
+const successStep = document.getElementById('successStep');
+const submitBtn = document.getElementById('submitOrderBtn');
+
 function openModal(){
   modalBackdrop.classList.add('open');
   document.getElementById('formError').hidden = true;
+  showFormStep();
 }
 function closeModal(){
   modalBackdrop.classList.remove('open');
 }
+function showFormStep(){
+  formStep.hidden = false;
+  successStep.hidden = true;
+}
+function showSuccessStep(){
+  formStep.hidden = true;
+  successStep.hidden = false;
+}
 document.getElementById('modalClose').addEventListener('click', closeModal);
 modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
+document.getElementById('closeSuccessBtn').addEventListener('click', closeModal);
+
+document.getElementById('fieldAdresseZone').addEventListener('change', (e) => {
+  const isOther = e.target.value === 'Autre';
+  const otherLabel = document.getElementById('fieldAdresseOtherLabel');
+  otherLabel.hidden = !isOther;
+  if (!isOther) document.getElementById('fieldAdresseOther').value = '';
+});
 
 document.getElementById('orderForm').addEventListener('submit', (e) => {
   e.preventDefault();
 
+  if (!isShopOpen()){ closeModal(); showClosedNotice(); return; }
+
   const nom = document.getElementById('fieldNom').value.trim();
   const prenom = document.getElementById('fieldPrenom').value.trim();
   const telephone = document.getElementById('fieldTelephone').value.trim();
-  const adresse = document.getElementById('fieldAdresse').value.trim();
+  const zone = document.getElementById('fieldAdresseZone').value;
+  const adresseAutre = document.getElementById('fieldAdresseOther').value.trim();
+  const adresse = zone === 'Autre' ? adresseAutre : zone;
   const remarque = document.getElementById('fieldRemarque').value.trim();
   const errorEl = document.getElementById('formError');
 
-  if (!nom || !prenom || !telephone || !adresse){
+  if (!nom || !prenom || !telephone || !zone){
     errorEl.textContent = 'Merci de remplir tous les champs obligatoires (*).';
+    errorEl.hidden = false;
+    return;
+  }
+  if (zone === 'Autre' && !adresseAutre){
+    errorEl.textContent = 'Merci de préciser votre adresse.';
     errorEl.hidden = false;
     return;
   }
@@ -410,10 +473,18 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
   }
 
   errorEl.hidden = true;
-  sendOrderToWhatsapp({ nom, prenom, telephone, adresse, remarque });
+  const orderText = buildOrderText({ nom, prenom, telephone, adresse, remarque });
+
+  sendOrderToWhatsapp(orderText);
+  document.getElementById('orderSummaryBox').textContent = orderText;
+  showSuccessStep();
+  clearCart();
+  closeDrawer();
+  document.getElementById('orderForm').reset();
+  document.getElementById('fieldAdresseOtherLabel').hidden = true;
 });
 
-function sendOrderToWhatsapp({ nom, prenom, telephone, adresse, remarque }){
+function buildOrderText({ nom, prenom, telephone, adresse, remarque }){
   const lines = [];
   lines.push('🍔 NOUVELLE COMMANDE');
   lines.push('');
@@ -432,15 +503,15 @@ function sendOrderToWhatsapp({ nom, prenom, telephone, adresse, remarque }){
   lines.push(`TOTAL : ${formatDA(cartTotal())}`);
   lines.push('');
   lines.push(`Remarque : ${remarque ? remarque : 'Aucune'}`);
+  return lines.join('\n');
+}
 
-  const text = encodeURIComponent(lines.join('\n'));
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
+/* Opens WhatsApp with the order pre-typed. The customer still taps
+   Envoyer ➤ once inside WhatsApp to actually send it — no platform
+   allows a site to skip that final tap. */
+function sendOrderToWhatsapp(text){
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');
-
-  closeModal();
-  clearCart();
-  closeDrawer();
-  document.getElementById('orderForm').reset();
 }
 
 /* ---------- TOPBAR SCROLL SHADOW ---------- */
@@ -449,6 +520,42 @@ window.addEventListener('scroll', () => {
   if (window.scrollY > 40) topbar.style.borderBottomColor = 'rgba(249,115,22,.25)';
   else topbar.style.borderBottomColor = '';
 });
+
+/* ---------- RENDER OPENING HOURS TEXT (single source of truth: OPENING_HOURS) ---------- */
+function renderOpeningHoursText(){
+  document.getElementById('footerHours').textContent =
+    OPENING_HOURS.map(r => r.label).join(' et ');
+
+  document.getElementById('hoursBox').innerHTML =
+    OPENING_HOURS.map(r => `<p>🕐 ${r.label}</p>`).join('');
+}
+renderOpeningHoursText();
+
+/* ---------- CLOSED NOTICE MODAL ---------- */
+const closedBackdrop = document.getElementById('closedBackdrop');
+function showClosedNotice(){
+  closedBackdrop.classList.add('open');
+}
+function hideClosedNotice(){
+  closedBackdrop.classList.remove('open');
+}
+document.getElementById('closedModalClose').addEventListener('click', hideClosedNotice);
+document.getElementById('closedOkBtn').addEventListener('click', hideClosedNotice);
+closedBackdrop.addEventListener('click', (e) => { if (e.target === closedBackdrop) hideClosedNotice(); });
+
+/* ---------- LIVE OPEN/CLOSED STATUS PILL ---------- */
+function updateStatusPill(){
+  const pill = document.getElementById('statusPill');
+  if (isShopOpen()){
+    pill.textContent = '🟢 Ouvert';
+    pill.classList.remove('closed');
+  } else {
+    pill.textContent = '🔴 Fermé';
+    pill.classList.add('closed');
+  }
+}
+updateStatusPill();
+setInterval(updateStatusPill, 30000); // re-check every 30s in case the tab stays open across a boundary
 
 /* ---------- INIT ---------- */
 renderMenu();
