@@ -8,7 +8,7 @@ const WHATSAPP_NUMBER = "213564222354"; // 0563 52 24 28, international format (
 const OPENING_HOURS = {
   // Sunday(0) - Thursday(4): lunch + dinner
   standard: [
-    { start: 11* 60 + 30, end: 15 * 60,      label: "11h30 – 15h00" },
+    { start: 11* 60, end: 15 * 60,      label: "11h00 – 15h00" },
     { start: 17 * 60 + 30, end: 23 * 60 + 30, label: "17h30 – 23h30" },
   ],
   // Friday(5) - Saturday(6): dinner only, opens earlier, no lunch service
@@ -74,6 +74,8 @@ const DELIVERY_FEES = {
   "CHHAYRIA": 300,
   "TOSYALI": 400,
   "Arzew": 400,
+  "F4": 150,
+  "EMPORTE": 0
   // "Autre" is intentionally absent — no fixed fee, confirmed manually
 };
 
