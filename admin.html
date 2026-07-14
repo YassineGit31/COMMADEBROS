@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Bro's Burger — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+
+<div class="admin-wrap">
+  <p class="admin-brand">BRO'S<span>BURGER</span><small>Espace admin</small></p>
+
+  <!-- LOGIN CARD -->
+  <div class="admin-card" id="loginCard">
+    <h1>Connexion</h1>
+    <p class="modal-sub">Accès réservé — entrez vos identifiants.</p>
+
+    <form id="loginForm" novalidate>
+      <label>Email
+        <input type="email" id="loginEmail" autocomplete="username" required>
+      </label>
+      <label>Mot de passe
+        <input type="password" id="loginPassword" autocomplete="current-password" required>
+      </label>
+      <p class="form-error" id="loginError" hidden></p>
+      <button type="submit" class="btn-confirm btn-block">Se connecter</button>
+    </form>
+  </div>
+
+  <!-- CONTROL PANEL (shown once logged in) -->
+  <div class="admin-card" id="panelCard" hidden>
+    <h1>Contrôle de la boutique</h1>
+    <p class="modal-sub">Statut actuel : <strong id="currentStatusText">—</strong></p>
+
+    <div class="admin-buttons">
+      <button type="button" class="btn-open" id="forceOpenBtn">🟢 Forcer OUVERT</button>
+      <button type="button" class="btn-closed" id="forceClosedBtn">🔴 Forcer FERMÉ</button>
+      <button type="button" class="btn-auto" id="autoBtn">🕒 Mode automatique</button>
+    </div>
+
+    <p class="admin-hint">En mode automatique, le site suit vos horaires normaux déjà configurés (Dim–Jeu / Ven–Sam). Les boutons "Forcer" prennent le dessus jusqu'à ce que vous repassiez en automatique.</p>
+
+    <button type="button" class="btn-ghost btn-block" id="logoutBtn">Se déconnecter</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
