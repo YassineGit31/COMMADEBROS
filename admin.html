@@ -47,12 +47,20 @@
 
     <button type="button" class="btn-ghost btn-block" id="logoutBtn">Se déconnecter</button>
   </div>
+
+  <!-- PRODUCT AVAILABILITY (shown once logged in) -->
+  <div class="admin-card" id="availabilityCard" hidden>
+    <h1>Disponibilité des produits</h1>
+    <p class="modal-sub">Cochez un produit en rupture — ça disparaît du site pour tout le monde, instantanément.</p>
+    <div class="availability-list" id="availabilityList"><!-- injected by admin.js --></div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="menu-data.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>

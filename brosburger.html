@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bro's Burger — Commander en ligne</title>
+<meta name="description" content="Commandez vos burgers, philly, poutines et plus chez Bro's Burger, Camp6 Ain El Bia, Oran.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- ✅ EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <a href="#hero" class="brand">BRO'S<span>BURGER</span></a>
+    <div class="topbar-right">
+      <nav class="topnav">
+        <a href="#menu">Menu</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <span class="status-pill" id="statusPill">🟢 Ouvert</span>
+      <button class="cart-pill" id="cartToggleBtn" aria-label="Voir le panier">
+        <span class="cart-pill-icon">🛒</span>
+        <span class="cart-pill-count" id="cartCountTop">0</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="hero-content">
+    <p class="eyebrow">📍 Camp6, Ain El Bia — Oran</p>
+    <h1 class="hero-title">BRO'S<span>BURGER</span></h1>
+    <p class="tagline">Des burgers frais, généreux et préparés avec passion.<br>Composez votre commande, on s'occupe du reste.</p>
+    <a href="#menu" class="btn-primary">Voir le menu ↓</a>
+  </div>
+</section>
+
+<!-- MAIN LAYOUT -->
+<main class="layout" id="menu">
+  <div class="menu-column">
+    <div id="menuContainer"><!-- injected by script.js --></div>
+  </div>
+  <aside class="cart-column">
+    <div class="ticket" id="ticket">
+      <div class="ticket-notch" aria-hidden="true"></div>
+      <div class="ticket-body">
+        <h2 class="ticket-title">🛒 Mon Panier</h2>
+        <div class="ticket-items" id="cartItems">
+          <p class="cart-empty" id="cartEmptyMsg">Votre panier est vide.<br>Ajoutez un produit pour commencer 👀</p>
+        </div>
+        <div class="ticket-divider" id="ticketDivider" hidden></div>
+        <div class="ticket-total-row" id="ticketTotalRow" hidden>
+          <span>TOTAL</span>
+          <span id="cartTotal">0 DA</span>
+        </div>
+        <p class="ticket-delivery-hint" id="ticketDeliveryHint" hidden>+ frais de livraison selon votre zone</p>
+        <div class="ticket-actions" id="ticketActions" hidden>
+          <button class="btn-ghost" id="editBtn" type="button">Modifier</button>
+          <button class="btn-ghost btn-danger" id="clearBtn" type="button">Vider</button>
+          <button class="btn-confirm" id="orderBtn" type="button">Commander</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- MOBILE FLOATING CART BUTTON -->
+<button class="cart-fab" id="cartFab" hidden>
+  <span class="cart-fab-icon">🛒</span>
+  <span class="cart-fab-info">
+    <span class="cart-fab-count" id="cartFabCount">0 article</span>
+    <span class="cart-fab-total" id="cartFabTotal">0 DA</span>
+  </span>
+  <span class="cart-fab-arrow">Voir ▲</span>
+</button>
+
+<!-- MOBILE DRAWER BACKDROP -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+<!-- FOOTER -->
+<footer class="site-footer" id="contact">
+  <p class="footer-brand">BRO'S<span>BURGER</span></p>
+  <div class="social-links">
+    <a class="social-link" href="https://www.instagram.com/bros_burger31" target="_blank" rel="noopener" aria-label="Instagram">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/></svg>
+    </a>
+    <a class="social-link" href="https://www.facebook.com/profile.php?id=61579059284394" target="_blank" rel="noopener" aria-label="Facebook">
+      <svg viewBox="0 0 24 24"><path fill="currentColor" d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.5c0-.9.25-1.5 1.55-1.5H16V4.3C15.7 4.26 14.75 4.17 13.65 4.17c-2.3 0-3.9 1.4-3.9 4v2.33H7.3v3h2.45V21z"/></svg>
+    </a>
+    <a class="social-link" href="https://www.tiktok.com/@bros.burger31" target="_blank" rel="noopener" aria-label="TikTok">
+      <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16.5 3c.4 2.1 1.9 3.6 4 3.9v2.8c-1.5-.1-2.9-.6-4-1.5v6.6c0 3.1-2.5 5.6-5.6 5.6S5.3 17.9 5.3 14.8s2.5-5.6 5.6-5.6c.4 0 .8 0 1.1.1v2.9c-.4-.1-.7-.2-1.1-.2-1.5 0-2.7 1.2-2.7 2.7s1.2 2.7 2.7 2.7 2.7-1.2 2.7-2.7V3h2.9z"/></svg>
+    </a>
+  </div>
+  <p><a href="tel:0563522428">📞 0563 52 24 28</a></p>
+  <p><a href="https://maps.app.goo.gl/mW3aTxrk6tTGoNfS7" target="_blank" rel="noopener">📍 Camp6, Ain El Bia, Oran, Algérie</a></p>
+  <p>🕒 Dimanche – Jeudi : <span id="footerHours"></span><br>
+     Vendredi – Samedi : <span id="footerHoursWeekend"></span></p>
+  <p class="muted">© 2026 Bro's Burger — Tous droits réservés</p>
+</footer>
+
+<!-- ORDER MODAL -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" id="modalClose" type="button" aria-label="Fermer">✕</button>
+
+    <!-- STEP 1: customer info -->
+    <div id="formStep">
+      <h2 id="modalTitle">Vos informations</h2>
+      <p class="modal-sub">Il nous faut juste ça pour préparer et livrer votre commande.</p>
+      <form id="orderForm" novalidate>
+        <label>Nom *
+          <input type="text" name="nom" id="fieldNom" autocomplete="family-name" required>
+        </label>
+        <label>Prénom *
+          <input type="text" name="prenom" id="fieldPrenom" autocomplete="given-name" required>
+        </label>
+        <label>Téléphone *
+          <input type="tel" name="telephone" id="fieldTelephone" autocomplete="tel" placeholder="0555 55 55 55" required>
+        </label>
+        <label>Adresse *
+          <select name="adresseZone" id="fieldAdresseZone" required>
+            <option value="" disabled selected>Choisissez votre zone...</option>
+            <option value="Camp 02">Camp 02 - 100da</option>
+            <option value="Camp 03">Camp 03 - 150da</option>
+            <option value="Camp 04">Camp 04 - 100da</option>
+            <option value="Camp 05">Camp 05 - 100da</option>
+            <option value="Camp 06">Camp 06 - 100da</option>
+            <option value="Camp 07">Camp 07 - 150da</option>
+            <option value="Camp 08">Camp 08 - 200da</option>
+            <option value="Camp 09">Camp 09 - 200da</option>
+            <option value="F4">F4 - 150da</option>
+            <option value="Finix">Finix - 200da</option>
+            <option value="Betioua">Betioua - 200da</option>
+            <option value="Ain El Bia">Ain El Bia - 100da</option>
+            <option value="CHHAYRIA">CHHAYRIA - 300da</option>
+            <option value="TOSYALI">TOSYALI - 400da</option>
+            <option value="Arzew">Arzew - 400da</option>
+            <option value="EMPORTE">EMPORTE - 0DA</option>
+            <option value="Autre">Autre (préciser)</option>
+          </select>
+        </label>
+        <p class="delivery-fee-note" id="deliveryFeeNote"></p>
+        <label id="fieldAdresseOtherLabel" hidden>Précisez votre adresse *
+          <textarea name="adresseAutre" id="fieldAdresseOther" rows="2" placeholder="Quartier, rue, repère..."></textarea>
+        </label>
+        <label>Remarque <span class="optional">(optionnel)</span>
+          <textarea name="remarque" id="fieldRemarque" rows="2" placeholder="Sans oignon, allergie, étage, etc."></textarea>
+        </label>
+        <p class="form-error" id="formError" hidden></p>
+        <button type="submit" class="btn-confirm btn-block" id="submitOrderBtn">Valider ma commande ✓</button>
+      </form>
+    </div>
+
+    <!-- STEP 2: success -->
+    <div id="successStep" hidden>
+      <div style="text-align:center; font-size: 3rem; margin-bottom: 1rem;">✅</div>
+      <h2>Commande envoyée !</h2>
+      <p class="modal-sub">
+        📧 Un email a été envoyé automatiquement à Bro's Burger.<br><br>
+        📲 WhatsApp vient de s'ouvrir — appuyez sur <strong>Envoyer ➤</strong> pour confirmer votre commande.
+      </p>
+      <pre class="order-summary-box" id="orderSummaryBox"></pre>
+      <p class="modal-note">Merci de votre confiance 🍔 Bro's Burger vous prépare ça avec amour !</p>
+      <button type="button" class="btn-confirm btn-block" id="closeSuccessBtn">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLOSED NOTICE MODAL -->
+<div class="modal-backdrop" id="closedBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="closedTitle">
+    <button class="modal-close" id="closedModalClose" type="button" aria-label="Fermer">✕</button>
+    <h2 id="closedTitle">😴 On est fermés pour le moment</h2>
+    <p class="modal-sub">Merci de repasser pendant nos horaires d'ouverture :</p>
+    <div class="hours-box" id="hoursBox"></div>
+    <button type="button" class="btn-confirm btn-block" id="closedOkBtn">Compris</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="menu-data.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
