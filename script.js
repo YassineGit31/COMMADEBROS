@@ -2,7 +2,7 @@
    BRO'S BURGER — ordering logic
    ========================================================== */
 
-const WHATSAPP_NUMBER = "213665941989"; // international format, no + (needed by wa.me)
+const WHATSAPP_NUMBER = "213563522428"; // international format, no + (needed by wa.me)
 
 /* ---------- OPENING HOURS (Algeria time, Africa/Algiers = fixed UTC+1, no DST) ---------- */
 const OPENING_HOURS = {
