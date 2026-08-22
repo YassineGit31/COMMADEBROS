@@ -42,6 +42,11 @@
     <p class="tagline">Des burgers frais, généreux et préparés avec passion.<br>Composez votre commande, on s'occupe du reste.</p>
     <a href="#menu" class="btn-primary">Voir le menu ↓</a>
   </div>
+
+  <div class="hero-3d-container" id="hero3dContainer" aria-hidden="true">
+    <canvas id="burgerCanvas"></canvas>
+    <div class="hero-3d-fallback" id="heroFallback" hidden>🍔</div>
+  </div>
 </section>
 
 <!-- MAIN LAYOUT -->
@@ -191,5 +196,7 @@
 <script src="firebase-config.js"></script>
 <script src="menu-data.js"></script>
 <script src="script.js"></script>
+<script src="https://unpkg.com/three@0.160.1/build/three.min.js"></script>
+<script src="hero-3d.js"></script>
 </body>
 </html>
