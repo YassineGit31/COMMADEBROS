@@ -4,57 +4,106 @@
    (product availability list) — edit the menu here only, once.
    ========================================================== */
 
+/* ---------- REUSABLE SUPPLEMENT DEFINITIONS ----------
+   Shared building blocks so a price only needs to be edited once
+   and it updates everywhere it's used. Attach any of these (or a
+   custom one-off) to a product's own `supplements` array below. */
+/* IDs below are intentionally the SAME ids used by their matching
+   item in the "Suppléments" category further down (supp-fromage-gouda,
+   supp-viande, supp-poulet, etc). That's what lets one rupture toggle
+   in admin.html hide the ingredient everywhere it appears — as a
+   standalone item AND as a per-product supplement checkbox. Never
+   give a per-product supplement a different id than its Suppléments
+   counterpart, or the two fall out of sync again. */
+const SUPP_GOUDA       = { id:"supp-fromage-gouda",     name:"Extra Gouda",         price:100 };
+const SUPP_CAMEMBERT   = { id:"supp-fromage-camembert", name:"Extra Camembert",    price:100 };
+const SUPP_MOZZARELLA  = { id:"supp-fromage-mozza",     name:"Extra Mozzarella",  price:100 };
+const SUPP_GRUYERE     = { id:"supp-fromage-gruyere",   name:"Extra Gruyère",      price:100 };
+const SUPP_VIANDE      = { id:"supp-viande",            name:"Extra viande hachée", price:200 };
+const SUPP_POULET      = { id:"supp-poulet",            name:"Extra poulet",       price:200 };
+const SUPP_CHAMPIGNONS = { id:"supp-champignon",        name:"Champignons",        price:150 };
+const SUPP_ANANAS      = { id:"supp-ananas",            name:"Ananas",             price:150 };
+/* No matching standalone item in "Suppléments" below, so this one
+   can't be marked en rupture from admin yet. If you want that, add
+   a { id:"extra_sauce", name:"Sauce supplémentaire", price:50 } row
+   to the Suppléments category further down and it'll work the same way. */
+const SUPP_SAUCE       = { id:"extra_sauce",   name:"Sauce supplémentaire", price:50 };
+
+const CHEESE_SUPPLEMENTS = [SUPP_GOUDA, SUPP_CAMEMBERT, SUPP_MOZZARELLA, SUPP_GRUYERE];
+
 const MENU = [
   {
     category: "Burgers",
     icon: "🍔",
     items: [
-      { id:"burger-pollo",     name:"Pollo",           price:200, desc:["Salade","Tomate","Escalope","Fromage slice","Sauce Bros"] },
-      { id:"burger-classic",   name:"Classic",         price:300, desc:["Salade","Tomate","Viande hachée","Fromage slice","Sauce Bros"] },
-      { id:"burger-chicken",   name:"Chicken",         price:400, desc:["Salade","Tomate","Tenders","Gouda","Sauce Bros"] },
-      { id:"burger-beef",      name:"Beef",            price:450, desc:["Salade","Tomate","Viande hachée","Cornichon","Oignon caramélisé","Gouda","Sauce Bros"] },
-      { id:"burger-extrabeef", name:"Extra Beef",      price:550, desc:["Salade","Tomate","Viande hachée","Cornichon","Oignon caramélisé","Gouda","Sauce Bros","Sauce fromagère"] },
-      { id:"burger-story",     name:"Story Burger",    price:550, desc:["Salade","Tomate","Viande hachée","Escalope","Œuf","Gouda","Sauce Bros","Sauce fromagère"], badge:"🎁 Frites + boisson offertes" },
+      { id:"burger-pollo",     name:"Pollo",           price:200, desc:["Salade","Tomate","Escalope","Fromage slice","Sauce Bros"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_POULET, SUPP_SAUCE] },
+      { id:"burger-classic",   name:"Classic",         price:300, desc:["Salade","Tomate","Viande hachée","Fromage slice","Sauce Bros"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_SAUCE] },
+      { id:"burger-chicken",   name:"Chicken",         price:400, desc:["Salade","Tomate","Tenders","Gouda","Sauce Bros"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_POULET, SUPP_SAUCE] },
+      { id:"burger-beef",      name:"Beef",            price:450, desc:["Salade","Tomate","Viande hachée","Cornichon","Oignon caramélisé","Gouda","Sauce Bros"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_SAUCE] },
+      { id:"burger-extrabeef", name:"Extra Beef",      price:550, desc:["Salade","Tomate","Viande hachée","Cornichon","Oignon caramélisé","Gouda","Sauce Bros","Sauce fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_SAUCE] },
+      { id:"burger-story",     name:"Story Burger",    price:550, desc:["Salade","Tomate","Viande hachée","Escalope","Œuf","Gouda","Sauce Bros","Sauce fromagère"], badge:"🎁 Frites + boisson offertes",
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_SAUCE] },
     ]
   },
   {
     category: "Sandwich Philly",
     icon: "🥪",
     items: [
-      { id:"philly-poulet",   name:"Philly Poulet Pané",     price:400, desc:["Poulet pané","Gouda","Pain brioche","Sauce Bros & fromagère"] },
-      { id:"philly-escalope", name:"Philly Escalope Grillée",price:400, desc:["Escalope grillée","Gouda","Pain brioche","Sauce Bros & fromagère"] },
-      { id:"philly-boeuf",    name:"Philly Bœuf Haché",      price:550, desc:["Bœuf haché","Gouda","Pain brioche","Sauce Bros & fromagère"] },
-      { id:"philly-mix",      name:"Philly Mix",             price:600, desc:["Poulet pané & bœuf haché","Gouda","Pain brioche","Sauce Bros & fromagère"] },
-      { id:"philly-supreme",  name:"Philly Suprême",         price:650, desc:["Bœuf & poulet fumé","Camembert & cheddar","Pain brioche","Sauce Bros & fromagère"] },
+      { id:"philly-poulet",   name:"Philly Poulet Pané",     price:400, desc:["Poulet pané","Gouda","Pain brioche","Sauce Bros & fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_POULET, SUPP_SAUCE] },
+      { id:"philly-escalope", name:"Philly Escalope Grillée",price:400, desc:["Escalope grillée","Gouda","Pain brioche","Sauce Bros & fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_POULET, SUPP_SAUCE] },
+      { id:"philly-boeuf",    name:"Philly Bœuf Haché",      price:550, desc:["Bœuf haché","Gouda","Pain brioche","Sauce Bros & fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_SAUCE] },
+      { id:"philly-mix",      name:"Philly Mix",             price:600, desc:["Poulet pané & bœuf haché","Gouda","Pain brioche","Sauce Bros & fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_POULET, SUPP_SAUCE] },
+      { id:"philly-supreme",  name:"Philly Suprême",         price:650, desc:["Bœuf & poulet fumé","Camembert & cheddar","Pain brioche","Sauce Bros & fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_POULET, SUPP_SAUCE] },
     ]
   },
   {
     category: "Poutines",
     icon: "🍟",
     items: [
-      { id:"poutine-poulet",   name:"Poutine Poulet Pané",      price:450, desc:["Frites","Poulet pané","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
-      { id:"poutine-escalope", name:"Poutine Escalope Grillée", price:450, desc:["Frites","Escalope grillée","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
-      { id:"poutine-fumato",   name:"Poutine Fumato",           price:450, desc:["Frites","Escalope grillée","Poulet fumé","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
-      { id:"poutine-boeuf",    name:"Poutine Bœuf Haché",       price:550, desc:["Frites","Bœuf haché","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
-      { id:"poutine-mix",      name:"Poutine Mix",              price:600, desc:["Frites","Poulet & bœuf","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
-      { id:"poutine-pouletx2", name:"Poutine Poulet x2",        price:650, desc:["Frites","Double poulet pané","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
-      { id:"poutine-mixx2",    name:"Poutine Mix x2",           price:800, desc:["Frites","Double poulet & bœuf","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
-      { id:"poutine-boeufx2",  name:"Poutine Bœuf x2",          price:750, desc:["Frites","Double bœuf haché","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"] },
+      { id:"poutine-poulet",   name:"Poutine Poulet Pané",      price:450, desc:["Frites","Poulet pané","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_POULET, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
+      { id:"poutine-escalope", name:"Poutine Escalope Grillée", price:450, desc:["Frites","Escalope grillée","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_POULET, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
+      { id:"poutine-fumato",   name:"Poutine Fumato",           price:450, desc:["Frites","Escalope grillée","Poulet fumé","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_POULET, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
+      { id:"poutine-boeuf",    name:"Poutine Bœuf Haché",       price:550, desc:["Frites","Bœuf haché","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
+      { id:"poutine-mix",      name:"Poutine Mix",              price:600, desc:["Frites","Poulet & bœuf","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_POULET, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
+      { id:"poutine-pouletx2", name:"Poutine Poulet x2",        price:650, desc:["Frites","Double poulet pané","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_POULET, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
+      { id:"poutine-mixx2",    name:"Poutine Mix x2",           price:800, desc:["Frites","Double poulet & bœuf","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_POULET, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
+      { id:"poutine-boeufx2",  name:"Poutine Bœuf x2",          price:750, desc:["Frites","Double bœuf haché","Mozzarella","Cheddar","Sauce Bros","Sauce fromagère"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
     ]
   },
   {
     category: "Plats",
     icon: "🍽️",
     items: [
-      { id:"plat-hiver",   name:"Plat Hiver",   price:850, desc:["Salade composée","Poulet pané","Viande hachée","Omelette fromagère","Frites","Sauce Bros","Sauce fromagère","Cheddar"] },
-      { id:"plat-chicken", name:"Plat Chicken", price:600, desc:["Salade composée","Poulet pané","Sauce fromagère","Frites","Sauce Bros","Cheddar"] },
+      { id:"plat-hiver",   name:"Plat Hiver",   price:850, desc:["Salade composée","Poulet pané","Viande hachée","Omelette fromagère","Frites","Sauce Bros","Sauce fromagère","Cheddar"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_VIANDE, SUPP_POULET, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
+      { id:"plat-chicken", name:"Plat Chicken", price:600, desc:["Salade composée","Poulet pané","Sauce fromagère","Frites","Sauce Bros","Cheddar"],
+        supplements:[...CHEESE_SUPPLEMENTS, SUPP_POULET, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
     ]
   },
   {
     category: "Salades",
     icon: "🥗",
     items: [
-      { id:"salade-cesar", name:"Salade César", price:550, desc:["Salade","Tomate","Cornichon","Maïs","Cheddar","Poulet pané","Sauce César","Miel","Ananas"] },
+      { id:"salade-cesar", name:"Salade César", price:550, desc:["Salade","Tomate","Cornichon","Maïs","Cheddar","Poulet pané","Sauce César","Miel","Ananas"],
+        supplements:[SUPP_POULET, SUPP_ANANAS, SUPP_SAUCE] },
     ]
   },
   {
