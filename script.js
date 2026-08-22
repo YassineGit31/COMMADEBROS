@@ -132,8 +132,34 @@ let editing = false;
 function formatDA(n){
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' DA';
 }
+
+/* A cart row is uniquely identified by product id + its selected
+   supplement ids (sorted, so order of selection doesn't matter).
+   Same product with a different set of supplements = a different
+   row, so they never merge into one line. */
+function makeCartKey(id, supplements){
+  const sorted = (supplements || []).slice().sort();
+  return sorted.length ? id + '::' + sorted.join(',') : id;
+}
+
+/* Resolve the chosen supplement ids for a cart row into their full
+   { id, name, price } definitions, looked up on that product. */
+function resolveSupplements(row){
+  const product = PRODUCTS[row.id];
+  const defs = product.supplements || [];
+  return (row.supplements || [])
+    .map(supId => defs.find(d => d.id === supId))
+    .filter(Boolean);
+}
+
+function lineUnitPrice(row){
+  const base = PRODUCTS[row.id].price;
+  const extras = resolveSupplements(row).reduce((sum, d) => sum + d.price, 0);
+  return base + extras;
+}
+
 function cartTotal(){
-  return cart.reduce((sum, row) => sum + PRODUCTS[row.id].price * row.qty, 0);
+  return cart.reduce((sum, row) => sum + lineUnitPrice(row) * row.qty, 0);
 }
 function cartCount(){
   return cart.reduce((sum, row) => sum + row.qty, 0);
@@ -178,6 +204,32 @@ function renderProductCard(item){
   if (unavailable) card.classList.add('unavailable');
 
   const descHtml = (item.desc || []).map(d => `<li>${d}</li>`).join('');
+  const hasSupplements = item.supplements && item.supplements.length > 0;
+  const supplementsHtml = hasSupplements ? `
+    <div class="product-supplements">
+      <button type="button" class="supplement-toggle" aria-expanded="false" ${unavailable ? 'disabled' : ''}>
+        <span class="supplement-toggle-label">Ajouter des suppléments</span>
+        <span class="supplement-toggle-count" hidden>0</span>
+        <span class="supplement-toggle-icon" aria-hidden="true">⌄</span>
+      </button>
+      <div class="supplement-collapse">
+        <div class="supplement-collapse-inner">
+          <div class="product-supplements-grid">
+            ${item.supplements.map(s => {
+              const suppUnavailable = !isAvailable(s.id);
+              return `
+              <label class="supplement-chip${suppUnavailable ? ' unavailable' : ''}">
+                <input type="checkbox" value="${s.id}" ${(unavailable || suppUnavailable) ? 'disabled' : ''}>
+                <span>${s.name}${suppUnavailable ? ' <em>(rupture)</em>' : ''}</span>
+                <b>+${formatDA(s.price)}</b>
+              </label>
+            `;}).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  ` : '';
+
   card.innerHTML = `
     <div class="product-head">
       <span class="product-name">${item.name}</span>
@@ -186,6 +238,7 @@ function renderProductCard(item){
     ${item.desc ? `<ul class="product-desc">${descHtml}</ul>` : ''}
     ${item.badge && !unavailable ? `<span class="product-badge">${item.badge}</span>` : ''}
     ${unavailable ? `<span class="sold-out-badge">😔 Rupture de stock</span>` : ''}
+    ${supplementsHtml}
     <div class="product-foot">
       <div class="qty-stepper">
         <button type="button" class="qty-btn" data-action="dec" ${unavailable ? 'disabled' : ''}>−</button>
@@ -205,13 +258,50 @@ function renderProductCard(item){
     let v = parseInt(qtyValue.textContent, 10);
     qtyValue.textContent = v + 1;
   });
+
+  /* ---- Collapsible supplement picker: closed by default, only opens
+     when the customer taps it, so cards stay compact. ---- */
+  let supplementToggleBtn, supplementCollapse, supplementCountEl;
+  function closeSupplementPanel(){
+    if (!hasSupplements) return;
+    supplementToggleBtn.setAttribute('aria-expanded', 'false');
+    supplementCollapse.classList.remove('open');
+  }
+  function updateSupplementCount(){
+    const n = card.querySelectorAll('.product-supplements input[type="checkbox"]:checked').length;
+    supplementCountEl.hidden = n === 0;
+    supplementCountEl.textContent = n;
+  }
+  if (hasSupplements){
+    supplementToggleBtn = card.querySelector('.supplement-toggle');
+    supplementCollapse = card.querySelector('.supplement-collapse');
+    supplementCountEl = card.querySelector('.supplement-toggle-count');
+
+    supplementToggleBtn.addEventListener('click', () => {
+      const isOpen = supplementToggleBtn.getAttribute('aria-expanded') === 'true';
+      supplementToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+      supplementCollapse.classList.toggle('open', !isOpen);
+    });
+    card.querySelectorAll('.product-supplements input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', updateSupplementCount);
+    });
+  }
+
   const addBtn = card.querySelector('.btn-add');
   addBtn.addEventListener('click', () => {
     if (!isAvailable(item.id)) return;
     if (!isShopOpen()){ showClosedNotice(); return; }
     const qty = parseInt(qtyValue.textContent, 10);
-    addToCart(item.id, qty);
+    const selectedSupplements = hasSupplements
+      ? Array.from(card.querySelectorAll('.product-supplements input[type="checkbox"]:checked')).map(cb => cb.value)
+      : [];
+    addToCart(item.id, qty, selectedSupplements);
     qtyValue.textContent = '1';
+    if (hasSupplements){
+      card.querySelectorAll('.product-supplements input[type="checkbox"]:checked').forEach(cb => cb.checked = false);
+      updateSupplementCount();
+      closeSupplementPanel();
+    }
     flashAdded(addBtn);
   });
 
@@ -281,24 +371,25 @@ function observeCards(){
 }
 
 /* ---------- CART LOGIC ---------- */
-function addToCart(id, qty){
-  const existing = cart.find(r => r.id === id);
+function addToCart(id, qty, supplements = []){
+  const key = makeCartKey(id, supplements);
+  const existing = cart.find(r => r.key === key);
   if (existing) existing.qty += qty;
-  else cart.push({ id, qty });
+  else cart.push({ key, id, qty, supplements: [...supplements] });
   renderCart();
   openDrawerBriefFeedback();
 }
 
-function removeFromCart(id){
-  cart = cart.filter(r => r.id !== id);
+function removeFromCart(key){
+  cart = cart.filter(r => r.key !== key);
   renderCart();
 }
 
-function changeCartQty(id, delta){
-  const row = cart.find(r => r.id === id);
+function changeCartQty(key, delta){
+  const row = cart.find(r => r.key === key);
   if (!row) return;
   row.qty += delta;
-  if (row.qty <= 0) cart = cart.filter(r => r.id !== id);
+  if (row.qty <= 0) cart = cart.filter(r => r.key !== key);
   renderCart();
 }
 
@@ -330,27 +421,38 @@ function renderCart(){
   } else {
     cart.forEach(row => {
       const p = PRODUCTS[row.id];
-      const line = document.createElement('div');
-      line.className = 'cart-row';
-      line.innerHTML = `
-        <span class="cart-row-qty">${row.qty}×</span>
-        <span class="cart-row-stepper">
-          <button type="button" class="mini-qty-btn" data-id="${row.id}" data-delta="-1">−</button>
-          <span class="cart-row-qty-value">${row.qty}</span>
-          <button type="button" class="mini-qty-btn" data-id="${row.id}" data-delta="1">+</button>
-        </span>
-        <span class="cart-row-name">${p.name}</span>
-        <span class="cart-row-price">${formatDA(p.price * row.qty)}</span>
-        <button type="button" class="cart-row-remove" data-id="${row.id}" aria-label="Retirer">✕</button>
+      const supplementDefs = resolveSupplements(row);
+      const rowTotal = lineUnitPrice(row) * row.qty;
+
+      const group = document.createElement('div');
+      group.className = 'cart-row-group';
+
+      const supplementsHtml = supplementDefs.length
+        ? `<div class="cart-row-supplements">${supplementDefs.map(d => `<span>+ ${d.name}</span>`).join('')}</div>`
+        : '';
+
+      group.innerHTML = `
+        <div class="cart-row">
+          <span class="cart-row-qty">${row.qty}×</span>
+          <span class="cart-row-stepper">
+            <button type="button" class="mini-qty-btn" data-key="${row.key}" data-delta="-1">−</button>
+            <span class="cart-row-qty-value">${row.qty}</span>
+            <button type="button" class="mini-qty-btn" data-key="${row.key}" data-delta="1">+</button>
+          </span>
+          <span class="cart-row-name">${p.name}</span>
+          <span class="cart-row-price">${formatDA(rowTotal)}</span>
+          <button type="button" class="cart-row-remove" data-key="${row.key}" aria-label="Retirer">✕</button>
+        </div>
+        ${supplementsHtml}
       `;
-      itemsEl.appendChild(line);
+      itemsEl.appendChild(group);
     });
 
     itemsEl.querySelectorAll('.mini-qty-btn').forEach(btn => {
-      btn.addEventListener('click', () => changeCartQty(btn.dataset.id, parseInt(btn.dataset.delta,10)));
+      btn.addEventListener('click', () => changeCartQty(btn.dataset.key, parseInt(btn.dataset.delta,10)));
     });
     itemsEl.querySelectorAll('.cart-row-remove').forEach(btn => {
-      btn.addEventListener('click', () => removeFromCart(btn.dataset.id));
+      btn.addEventListener('click', () => removeFromCart(btn.dataset.key));
     });
 
     document.getElementById('cartTotal').textContent = formatDA(cartTotal());
@@ -515,6 +617,9 @@ function buildOrderText({ nom, prenom, telephone, adresse, zone, remarque }){
   cart.forEach(row => {
     const p = PRODUCTS[row.id];
     lines.push(`${row.qty} × ${p.name}`);
+    resolveSupplements(row).forEach(d => {
+      lines.push(`   + ${d.name} (+${formatDA(d.price)})`);
+    });
   });
   lines.push('────────────');
   const itemsTotal = cartTotal();
