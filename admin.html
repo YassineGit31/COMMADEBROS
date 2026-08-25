@@ -54,6 +54,13 @@
     <p class="modal-sub">Cochez un produit en rupture — ça disparaît du site pour tout le monde, instantanément.</p>
     <div class="availability-list" id="availabilityList"><!-- injected by admin.js --></div>
   </div>
+
+  <!-- LIVE ORDERS (shown once logged in) -->
+  <div class="admin-card" id="ordersCard" hidden>
+    <h1>Commandes <span class="orders-count-badge" id="ordersNewCount" hidden></span></h1>
+    <p class="modal-sub">Toutes les commandes arrivent ici en direct, même si le client n'a pas WhatsApp.</p>
+    <div class="orders-list" id="ordersList"><!-- injected by admin.js --></div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
