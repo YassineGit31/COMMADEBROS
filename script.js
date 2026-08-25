@@ -3,6 +3,7 @@
    ========================================================== */
 
 const WHATSAPP_NUMBER = "213563522428"; // international format, no + (needed by wa.me)
+const SHOP_PHONE_TEL = "+213563522428"; // used for the "Appeler" fallback button (tel: link)
 
 /* ---------- OPENING HOURS (Algeria time, Africa/Algiers = fixed UTC+1, no DST) ---------- */
 const OPENING_HOURS = {
@@ -63,10 +64,12 @@ function isShopOpen(){
 
 /* ---------- LIVE OPEN/CLOSED OVERRIDE + PRODUCT AVAILABILITY (set from admin.html) ---------- */
 let shopOverride = 'auto'; // 'auto' | 'open' | 'closed' — synced live from Firebase
+let db = null; // shared Firebase Realtime DB reference — also used by order saving below
 try {
   firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
 
-  firebase.database().ref('status/override').on('value',
+  db.ref('status/override').on('value',
     (snap) => {
       shopOverride = snap.val() || 'auto';
       updateStatusPill();
@@ -76,7 +79,7 @@ try {
     }
   );
 
-  firebase.database().ref('status/unavailable').on('value',
+  db.ref('status/unavailable').on('value',
     (snap) => {
       unavailableItems = snap.val() || {};
       renderMenu(); // re-render so sold-out items reflect instantly
@@ -510,6 +513,7 @@ document.getElementById('orderBtn').addEventListener('click', () => {
 const modalBackdrop = document.getElementById('modalBackdrop');
 const formStep = document.getElementById('formStep');
 const successStep = document.getElementById('successStep');
+document.getElementById('callFallbackBtn').href = `tel:${SHOP_PHONE_TEL}`;
 const submitBtn = document.getElementById('submitOrderBtn');
 
 function openModal(){
@@ -591,9 +595,17 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
   errorEl.hidden = true;
   const orderText = buildOrderText({ nom, prenom, telephone, adresse, zone, remarque });
 
+  // 1) Save to Firebase FIRST — this is the guaranteed record of the order.
+  //    It does not depend on WhatsApp being installed or email working, so
+  //    even if both of those fail silently, the order is never lost.
+  const orderNumber = saveOrderToFirebase({ nom, prenom, telephone, adresse, zone, remarque, orderText });
+
+  // 2) WhatsApp + email are best-effort convenience channels on top —
+  //    they run in parallel and never block the confirmation screen.
   sendOrderToWhatsapp(orderText);
   sendOrderByEmail({ nom, prenom, telephone, adresse, message: orderText });
 
+  document.getElementById('orderNumberDisplay').textContent = orderNumber ? '#' + orderNumber : '—';
   document.getElementById('orderSummaryBox').textContent = orderText;
   showSuccessStep();
   clearCart();
@@ -602,6 +614,48 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
   document.getElementById('fieldAdresseOtherLabel').hidden = true;
   document.getElementById('deliveryFeeNote').textContent = '';
 });
+
+/* ---------- SAVE ORDER TO FIREBASE (source of truth, independent of WhatsApp/email) ----------
+   push() generates a unique key locally and instantly, without waiting for the
+   network round-trip, so we can show the customer an order number right away.
+   The actual .set() write happens in the background; if it fails (e.g. customer
+   is offline), we log it but never block WhatsApp/email or the success screen —
+   those remain working fallbacks even if Firebase is unreachable. */
+function saveOrderToFirebase({ nom, prenom, telephone, adresse, zone, remarque, orderText }){
+  if (!db) return null; // Firebase not configured — WhatsApp/email still work as before
+
+  const itemsTotal = cartTotal();
+  const fee = DELIVERY_FEES[zone];
+  const items = cart.map(row => {
+    const p = PRODUCTS[row.id];
+    return {
+      id: row.id,
+      name: p.name,
+      qty: row.qty,
+      unitPrice: p.price,
+      supplements: resolveSupplements(row).map(d => ({ id: d.id, name: d.name, price: d.price })),
+    };
+  });
+
+  const orderRef = db.ref('orders').push();
+  const orderData = {
+    createdAt: firebase.database.ServerValue.TIMESTAMP,
+    status: 'nouvelle', // 'nouvelle' | 'traitee' — flipped from the admin panel
+    nom, prenom, telephone, adresse, zone,
+    remarque: remarque || '',
+    items,
+    itemsTotal,
+    deliveryFee: fee !== undefined ? fee : null,
+    total: fee !== undefined ? itemsTotal + fee : itemsTotal,
+    orderText, // human-readable copy, handy to display as-is in the admin panel
+  };
+
+  orderRef.set(orderData).catch((err) => {
+    console.warn('Order could not be saved to Firebase (WhatsApp/email still sent):', err);
+  });
+
+  return orderRef.key.slice(-6).toUpperCase(); // short, readable order number for the customer
+}
 
 function buildOrderText({ nom, prenom, telephone, adresse, zone, remarque }){
   const lines = [];
