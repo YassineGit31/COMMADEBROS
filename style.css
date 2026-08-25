@@ -1,10 +1,34 @@
-/* ============================================
-   BRO'S BURGER — Design tokens
-   Color: warm near-black + signature orange + WhatsApp green for confirm
-   Type:  Anton (display / menu-board) + Poppins (body / data)
+/* ==========================================================
+   BRO'S BURGER — Stylesheet
+   ----------------------------------------------------------
+   Colour:  warm near-black + signature orange + WhatsApp green
+   Type:    Anton (display / menu-board) + Poppins (body / data)
    Signature: cart styled as a kitchen order ticket
-   ============================================ */
 
+   Table of contents
+   1.  Variables
+   2.  Reset / base
+   3.  Typography helpers
+   4.  Global utilities
+   5.  Header / Topbar
+   6.  Hero
+   7.  Navigation (see §5 — nested inside the topbar)
+   8.  Layout / Menu
+   9.  Product cards
+   10. Cart / ticket
+   11. Buttons (see also §5, §6, §9, §10 — button variants live
+       next to the component that introduces them, this section
+       only holds the primary CTA + shared qty/add controls)
+   12. Modals
+   13. Forms
+   14. Footer
+   15. Admin page
+   16. Responsive breakpoints — co-located per component below;
+       see the note in each section rather than one global block
+   17. Animations / reduced motion
+   ========================================================== */
+
+/* ============================================ 1. VARIABLES */
 :root{
   --bg:            #0a0908;
   --bg-soft:       #0f0d0b;
@@ -23,7 +47,7 @@
 
   --text:          #f5f1ea;
   --text-muted:    #a39b8f;
-  --text-faint:    #6f685e;
+  --text-faint:    #857d71; /* lightened from #6f685e for AA contrast on --bg at small sizes */
 
   --radius-lg: 20px;
   --radius-md: 14px;
@@ -32,10 +56,18 @@
   --shadow-lg: 0 20px 50px rgba(0,0,0,.45);
   --shadow-card: 0 8px 24px rgba(0,0,0,.35);
 
+  /* Transition tokens — new additions use these; existing per-component
+     durations (.2s / .25s / .3s) were left untouched since the small
+     variation is intentional (buttons snap faster than cards/panels)
+     and blanket-replacing them risked subtly changing feel everywhere. */
+  --transition-fast: .2s ease;
+  --transition-base: .25s ease;
+
   --font-display: 'Anton', 'Poppins', sans-serif;
   --font-body: 'Poppins', sans-serif;
 }
 
+/* ============================================ 2. RESET / BASE */
 *,*::before,*::after{ box-sizing:border-box; }
 html{ scroll-behavior:smooth; }
 body{
@@ -55,17 +87,47 @@ input,textarea{ font-family:inherit; }
 ::-webkit-scrollbar-track{ background:var(--bg-soft); }
 ::-webkit-scrollbar-thumb{ background:var(--accent-dark); border-radius:4px; }
 
+/* ============================================ 3. TYPOGRAPHY HELPERS */
+.brand,
+.footer-brand,
+.admin-brand,
+.hero-title,
+.category-title,
+.ticket-title,
+.modal h2,
+.admin-card h1{
+  font-family:var(--font-display);
+}
+
+/* ============================================ 4. GLOBAL UTILITIES */
 :focus-visible{
   outline:2px solid var(--accent);
   outline-offset:2px;
   border-radius:4px;
 }
 
+/* Visually hidden but reachable by keyboard/screen readers */
+.sr-only{
+  position:absolute; width:1px; height:1px;
+  padding:0; margin:-1px; overflow:hidden;
+  clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+
+/* "Skip to menu" link — hidden until focused via Tab */
+.skip-link{
+  position:fixed; top:-60px; left:12px; z-index:200;
+  background:var(--accent); color:#170c04;
+  font-weight:700; font-size:.85rem;
+  padding:10px 16px; border-radius:var(--radius-sm);
+  transition:top var(--transition-base);
+}
+.skip-link:focus{ top:12px; }
+
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
 }
 
-/* ============================================ TOPBAR */
+/* ============================================ 5. HEADER / TOPBAR */
 .topbar{
   position:sticky; top:0; z-index:60;
   background:rgba(10,9,8,.75);
@@ -79,7 +141,6 @@ input,textarea{ font-family:inherit; }
   padding:14px 20px;
 }
 .brand{
-  font-family:var(--font-display);
   font-size:1.3rem; letter-spacing:.03em;
   color:var(--text);
 }
@@ -87,14 +148,15 @@ input,textarea{ font-family:inherit; }
 
 .topbar-right{ display:flex; align-items:center; gap:18px; }
 
+/* -- Navigation (nested in topbar) -- */
 .topnav{ display:flex; gap:28px; }
 .topnav a{
   font-weight:600; font-size:.92rem; color:var(--text-muted);
-  position:relative; padding:4px 0; transition:color .25s ease;
+  position:relative; padding:4px 0; transition:color var(--transition-base);
 }
 .topnav a::after{
   content:''; position:absolute; left:0; bottom:-2px; width:0; height:2px;
-  background:var(--accent); transition:width .25s ease;
+  background:var(--accent); transition:width var(--transition-base);
 }
 .topnav a:hover{ color:var(--text); }
 .topnav a:hover::after{ width:100%; }
@@ -105,7 +167,7 @@ input,textarea{ font-family:inherit; }
   padding:6px 12px; border-radius:999px;
   background:rgba(34,197,94,.14); color:var(--confirm);
   border:1px solid rgba(34,197,94,.3);
-  transition:background .25s ease, color .25s ease, border-color .25s ease;
+  transition:background var(--transition-base), color var(--transition-base), border-color var(--transition-base);
 }
 .status-pill.closed{
   background:rgba(239,68,68,.14); color:#fca5a5;
@@ -117,7 +179,7 @@ input,textarea{ font-family:inherit; }
   background:var(--accent-soft); border:1px solid var(--border);
   color:var(--text); padding:8px 14px; border-radius:999px;
   font-weight:600; font-size:.9rem;
-  transition:background .25s ease, transform .2s ease;
+  transition:background var(--transition-base), transform var(--transition-fast);
 }
 .cart-pill:hover{ background:var(--accent); transform:translateY(-1px); }
 .cart-pill-count{
@@ -128,6 +190,7 @@ input,textarea{ font-family:inherit; }
 }
 .cart-pill:hover .cart-pill-count{ background:var(--bg); color:var(--accent); }
 
+/* -- Responsive: header/nav (co-located, see §16 note above) -- */
 @media (min-width: 1024px){
   .cart-pill{ display:none; } /* sidebar cart always visible on desktop */
 }
@@ -136,7 +199,7 @@ input,textarea{ font-family:inherit; }
   .topbar-right{ gap:10px; }
 }
 
-/* ============================================ HERO */
+/* ============================================ 6. HERO */
 .hero{
   position:relative;
   min-height:78vh;
@@ -155,10 +218,6 @@ input,textarea{ font-family:inherit; }
   filter:blur(60px);
   animation:glowPulse 6s ease-in-out infinite;
 }
-@keyframes glowPulse{
-  0%,100%{ transform:translateY(0) scale(1); opacity:.7; }
-  50%{ transform:translateY(20px) scale(1.08); opacity:1; }
-}
 .hero-grid{
   position:absolute; inset:0;
   background-image:
@@ -173,7 +232,6 @@ input,textarea{ font-family:inherit; }
   text-transform:uppercase; font-size:.8rem; margin:0 0 18px;
 }
 .hero-title{
-  font-family:var(--font-display);
   font-size:clamp(3rem, 11vw, 6.5rem);
   line-height:.92; letter-spacing:.01em;
   margin:0 0 22px;
@@ -188,17 +246,9 @@ input,textarea{ font-family:inherit; }
   color:var(--text-muted); font-size:1.05rem; line-height:1.6;
   max-width:520px; margin:0 auto 34px;
 }
-.btn-primary{
-  display:inline-block;
-  background:var(--accent); color:#170c04;
-  font-weight:800; font-size:1rem;
-  padding:15px 34px; border-radius:999px;
-  box-shadow:0 12px 30px rgba(249,115,22,.35);
-  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease;
-}
-.btn-primary:hover{ transform:translateY(-3px); box-shadow:0 16px 36px rgba(249,115,22,.5); }
 
-/* ============================================ HERO — 3D BURGER */
+
+/* -- Hero 3D burger canvas -- */
 .hero-3d-container{
   position:relative; z-index:2;
   width:100%; max-width:460px;
@@ -218,11 +268,18 @@ input,textarea{ font-family:inherit; }
   filter:drop-shadow(0 20px 45px rgba(249,115,22,.45));
   animation:heroFallbackFloat 4s ease-in-out infinite;
 }
-@keyframes heroFallbackFloat{
-  0%,100%{ transform:translateY(0) rotate(-2deg); }
-  50%{ transform:translateY(-16px) rotate(2deg); }
-}
 
+.btn-primary{
+  display:inline-block;
+  background:var(--accent); color:#170c04;
+  font-weight:800; font-size:1rem;
+  padding:15px 34px; border-radius:999px;
+  box-shadow:0 12px 30px rgba(249,115,22,.35);
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease;
+}
+.btn-primary:hover{ transform:translateY(-3px); box-shadow:0 16px 36px rgba(249,115,22,.5); }
+
+/* -- Responsive: hero -- */
 @media (min-width:1024px){
   .hero{
     flex-direction:row;
@@ -238,19 +295,21 @@ input,textarea{ font-family:inherit; }
   }
 }
 
-/* ============================================ LAYOUT */
+/* ============================================ 8. LAYOUT / MENU */
 .layout{
   max-width:1200px; margin:0 auto;
   padding:60px 20px 100px;
   display:grid; grid-template-columns:1fr;
   gap:40px;
   align-items:start;
+  min-width:0; /* prevents wide scrollable children (e.g. the category
+                  jump-bar) from forcing the grid track — and the page —
+                  wider than the viewport on mobile */
 }
 @media (min-width:1024px){
   .layout{ grid-template-columns:1fr 340px; gap:48px; }
 }
 
-/* ============================================ MENU CATEGORIES */
 .category{ margin-bottom:56px; }
 .category-header{
   display:flex; align-items:baseline; gap:14px;
@@ -260,7 +319,6 @@ input,textarea{ font-family:inherit; }
 }
 .category-icon{ font-size:1.5rem; }
 .category-title{
-  font-family:var(--font-display);
   font-size:clamp(1.5rem,3.5vw,2.1rem);
   letter-spacing:.02em;
   color:var(--text);
@@ -275,7 +333,7 @@ input,textarea{ font-family:inherit; }
   .card-grid{ grid-template-columns:repeat(2,1fr); }
 }
 
-/* Product card */
+/* ============================================ 9. PRODUCT CARDS */
 .product-card{
   background:var(--card);
   border:1px solid var(--border-soft);
@@ -333,7 +391,8 @@ input,textarea{ font-family:inherit; }
 .qty-btn:disabled:hover, .btn-add:disabled:hover{
   background:transparent; color:var(--accent); transform:none;
 }
-/* Per-product supplement picker: collapsed by default, expands on tap */
+
+/* -- Per-product supplement picker: collapsed by default, expands on tap -- */
 .product-supplements{
   display:flex;
   flex-direction:column;
@@ -346,7 +405,7 @@ input,textarea{ font-family:inherit; }
   border-radius:var(--radius-sm);
   padding:9px 12px;
   font-size:.8rem; font-weight:600; color:var(--text-muted);
-  transition:border-color .2s ease, color .2s ease, background .2s ease;
+  transition:border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 .supplement-toggle:hover{
   border-color:var(--accent);
@@ -365,7 +424,7 @@ input,textarea{ font-family:inherit; }
 }
 .supplement-toggle-icon{
   font-size:.85rem; line-height:1;
-  transition:transform .25s ease;
+  transition:transform var(--transition-base);
   color:inherit;
 }
 .supplement-toggle[aria-expanded="true"] .supplement-toggle-icon{ transform:rotate(180deg); }
@@ -375,7 +434,7 @@ input,textarea{ font-family:inherit; }
 .supplement-collapse{
   display:grid;
   grid-template-rows:0fr;
-  transition:grid-template-rows .25s ease;
+  transition:grid-template-rows var(--transition-base);
 }
 .supplement-collapse.open{
   grid-template-rows:1fr;
@@ -397,7 +456,7 @@ input,textarea{ font-family:inherit; }
   border-radius:var(--radius-sm);
   padding:8px 10px;
   cursor:pointer;
-  transition:border-color .2s ease, background .2s ease;
+  transition:border-color var(--transition-fast), background var(--transition-fast);
   font-size:.76rem;
   min-width:0;
 }
@@ -438,7 +497,7 @@ input,textarea{ font-family:inherit; }
   background:transparent; border:none; color:var(--text);
   width:32px; height:32px; font-size:1.1rem; font-weight:700;
   display:flex; align-items:center; justify-content:center;
-  transition:background .2s ease;
+  transition:background var(--transition-fast);
 }
 .qty-btn:hover{ background:var(--accent-soft); color:var(--accent); }
 .qty-value{ width:28px; text-align:center; font-weight:700; font-size:.9rem; }
@@ -448,13 +507,13 @@ input,textarea{ font-family:inherit; }
   border:1.5px solid var(--accent);
   font-weight:700; font-size:.82rem;
   padding:8px 16px; border-radius:999px;
-  transition:background .2s ease, color .2s ease, transform .2s ease;
+  transition:background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
   white-space:nowrap;
 }
 .btn-add:hover{ background:var(--accent); color:#170c04; transform:translateY(-1px); }
 .btn-add.just-added{ background:var(--confirm); border-color:var(--confirm); color:#06210f; }
 
-/* Supplement card (checkbox grid) */
+/* Supplement card (checkbox grid, used on standalone panels) */
 .supplement-panel{
   background:var(--card);
   border:1px solid var(--border-soft);
@@ -475,7 +534,7 @@ input,textarea{ font-family:inherit; }
   border-radius:var(--radius-sm);
   padding:10px 12px;
   cursor:pointer;
-  transition:border-color .2s ease, background .2s ease;
+  transition:border-color var(--transition-fast), background var(--transition-fast);
   font-size:.86rem;
 }
 .supplement-item:has(input:checked){
@@ -492,7 +551,7 @@ input,textarea{ font-family:inherit; }
   color:var(--danger); font-style:normal; font-size:.78rem;
 }
 
-/* ============================================ CART / TICKET (signature element) */
+/* ============================================ 10. CART / TICKET (signature element) */
 .cart-column{ position:relative; }
 @media (min-width:1024px){
   .cart-column{ position:sticky; top:96px; }
@@ -516,7 +575,6 @@ input,textarea{ font-family:inherit; }
 }
 .ticket-body{ padding:22px 22px 24px; }
 .ticket-title{
-  font-family:var(--font-display);
   font-size:1.3rem; letter-spacing:.02em;
   margin:0 0 16px;
 }
@@ -548,7 +606,7 @@ input,textarea{ font-family:inherit; }
 .cart-row-remove{
   background:none; border:none; color:var(--text-faint); font-size:1rem;
   padding:2px 4px; line-height:1;
-  transition:color .2s ease;
+  transition:color var(--transition-fast);
 }
 .cart-row-remove:hover{ color:var(--danger); }
 .cart-row-stepper{ display:none; align-items:center; gap:4px; }
@@ -580,7 +638,7 @@ input,textarea{ font-family:inherit; }
   background:transparent; border:1px solid var(--border-soft); color:var(--text-muted);
   font-weight:600; font-size:.82rem;
   padding:10px 10px; border-radius:var(--radius-sm);
-  transition:border-color .2s ease, color .2s ease;
+  transition:border-color var(--transition-fast), color var(--transition-fast);
 }
 .btn-ghost:hover{ border-color:var(--accent); color:var(--text); }
 .btn-ghost.btn-danger:hover{ border-color:var(--danger); color:var(--danger); }
@@ -591,11 +649,11 @@ input,textarea{ font-family:inherit; }
   background:var(--confirm); color:#06210f;
   font-weight:800; font-size:.92rem;
   padding:13px 14px; border-radius:var(--radius-sm);
-  transition:background .2s ease, transform .2s ease;
+  transition:background var(--transition-fast), transform var(--transition-fast);
 }
 .btn-confirm:hover{ background:var(--confirm-dark); color:#fff; transform:translateY(-1px); }
 
-/* ============================================ MOBILE FAB + DRAWER */
+/* -- Mobile FAB + drawer -- */
 .cart-fab[hidden]{ display:none; }
 .cart-fab{
   position:fixed; right:16px; bottom:16px; z-index:70;
@@ -606,10 +664,6 @@ input,textarea{ font-family:inherit; }
   box-shadow:0 14px 34px rgba(249,115,22,.4);
   font-weight:700;
   animation:fabPulse 2.4s ease-in-out infinite;
-}
-@keyframes fabPulse{
-  0%,100%{ box-shadow:0 14px 34px rgba(249,115,22,.4); }
-  50%{ box-shadow:0 14px 34px rgba(249,115,22,.65); }
 }
 .cart-fab-icon{ font-size:1.3rem; }
 .cart-fab-info{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.2; }
@@ -647,42 +701,7 @@ input,textarea{ font-family:inherit; }
   .drawer-backdrop.open{ opacity:1; pointer-events:auto; }
 }
 
-/* ============================================ FOOTER */
-.site-footer{
-  text-align:center; padding:56px 20px 40px;
-  border-top:1px solid var(--border-soft);
-  color:var(--text-muted); font-size:.92rem;
-  display:flex; flex-direction:column; gap:8px;
-}
-.footer-brand{
-  font-family:var(--font-display); font-size:1.4rem; color:var(--text);
-  margin:0 0 6px;
-}
-.footer-brand span{ color:var(--accent); margin-left:.2ch; }
-
-.social-links{
-  display:flex; justify-content:center; gap:14px;
-  margin:2px 0 10px;
-}
-.social-link{
-  display:flex; align-items:center; justify-content:center;
-  width:42px; height:42px; border-radius:999px;
-  border:1px solid var(--border-soft);
-  color:var(--text-muted);
-  transition:border-color .25s ease, color .25s ease, transform .25s ease, background .25s ease;
-}
-.social-link svg{ width:19px; height:19px; }
-.social-link:hover{
-  border-color:var(--accent);
-  color:var(--accent);
-  background:var(--accent-soft);
-  transform:translateY(-3px);
-}
-
-.site-footer a:hover{ color:var(--accent); }
-.site-footer .muted{ color:var(--text-faint); font-size:.78rem; margin-top:10px; }
-
-/* ============================================ MODAL */
+/* ============================================ 12. MODAL */
 .modal-backdrop{
   position:fixed; inset:0; z-index:100;
   background:rgba(0,0,0,.65);
@@ -709,14 +728,15 @@ input,textarea{ font-family:inherit; }
   position:absolute; top:14px; right:14px;
   background:none; border:none; color:var(--text-muted); font-size:1.2rem;
   width:32px; height:32px; border-radius:999px;
-  transition:background .2s ease, color .2s ease;
+  transition:background var(--transition-fast), color var(--transition-fast);
 }
 .modal-close:hover{ background:var(--accent-soft); color:var(--accent); }
 .modal h2{
-  font-family:var(--font-display); font-size:1.5rem; margin:0 0 6px; letter-spacing:.02em;
+  font-size:1.5rem; margin:0 0 6px; letter-spacing:.02em;
 }
 .modal-sub{ color:var(--text-muted); font-size:.88rem; margin:0 0 22px; }
 
+/* ============================================ 13. FORMS */
 #orderForm{ display:flex; flex-direction:column; gap:14px; }
 #orderForm label{
   display:flex; flex-direction:column; gap:6px;
@@ -727,7 +747,7 @@ input,textarea{ font-family:inherit; }
   background:var(--bg-soft); border:1px solid var(--border-soft);
   color:var(--text); border-radius:var(--radius-sm);
   padding:11px 13px; font-size:.92rem; resize:vertical;
-  transition:border-color .2s ease;
+  transition:border-color var(--transition-fast);
   font-family:inherit;
 }
 #orderForm select{
@@ -783,8 +803,43 @@ input,textarea{ font-family:inherit; }
   color:var(--text); font-variant-numeric:tabular-nums;
 }
 
+/* ============================================ 14. FOOTER */
+.site-footer{
+  text-align:center; padding:56px 20px 40px;
+  border-top:1px solid var(--border-soft);
+  color:var(--text-muted); font-size:.92rem;
+  display:flex; flex-direction:column; gap:8px;
+}
+.footer-brand{
+  font-size:1.4rem; color:var(--text);
+  margin:0 0 6px;
+}
+.footer-brand span{ color:var(--accent); margin-left:.2ch; }
+
+.social-links{
+  display:flex; justify-content:center; gap:14px;
+  margin:2px 0 10px;
+}
+.social-link{
+  display:flex; align-items:center; justify-content:center;
+  width:42px; height:42px; border-radius:999px;
+  border:1px solid var(--border-soft);
+  color:var(--text-muted);
+  transition:border-color var(--transition-base), color var(--transition-base), transform var(--transition-base), background var(--transition-base);
+}
+.social-link svg{ width:19px; height:19px; }
+.social-link:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:var(--accent-soft);
+  transform:translateY(-3px);
+}
+
+.site-footer a:hover{ color:var(--accent); }
+.site-footer .muted{ color:var(--text-faint); font-size:.78rem; margin-top:10px; }
+
 /* ==========================================================
-   ADMIN PAGE
+   15. ADMIN PAGE
    ========================================================== */
 .admin-body{
   min-height:100vh;
@@ -793,7 +848,7 @@ input,textarea{ font-family:inherit; }
 }
 .admin-wrap{ width:100%; max-width:420px; }
 .admin-brand{
-  text-align:center; font-family:var(--font-display); font-size:1.6rem;
+  text-align:center; font-size:1.6rem;
   color:var(--text); margin:0 0 24px; letter-spacing:.02em;
 }
 .admin-brand span{ color:var(--accent); margin-left:.2ch; }
@@ -808,7 +863,7 @@ input,textarea{ font-family:inherit; }
   box-shadow:var(--shadow-lg);
 }
 .admin-card h1{
-  font-family:var(--font-display); font-size:1.5rem; margin:0 0 6px; letter-spacing:.02em;
+  font-size:1.5rem; margin:0 0 6px; letter-spacing:.02em;
 }
 
 #loginForm{ display:flex; flex-direction:column; gap:14px; margin-top:20px; }
@@ -820,7 +875,7 @@ input,textarea{ font-family:inherit; }
   background:var(--bg-soft); border:1px solid var(--border-soft);
   color:var(--text); border-radius:var(--radius-sm);
   padding:11px 13px; font-size:.92rem; font-family:inherit;
-  transition:border-color .2s ease;
+  transition:border-color var(--transition-fast);
 }
 #loginForm input:focus{ border-color:var(--accent); outline:none; }
 
@@ -828,7 +883,7 @@ input,textarea{ font-family:inherit; }
 .btn-open, .btn-closed, .btn-auto{
   padding:15px; border-radius:var(--radius-sm); border:none;
   font-weight:800; font-size:.95rem; font-family:inherit;
-  transition:transform .2s ease, filter .2s ease;
+  transition:transform var(--transition-fast), filter var(--transition-fast);
 }
 .btn-open{ background:var(--confirm); color:#06210f; }
 .btn-closed{ background:var(--danger); color:#2a0a0a; }
@@ -841,9 +896,7 @@ input,textarea{ font-family:inherit; }
   font-size:.78rem; color:var(--text-faint); line-height:1.55; margin:0 0 20px;
 }
 
-/* ==========================================================
-   ADMIN — PRODUCT AVAILABILITY LIST
-   ========================================================== */
+/* -- Admin — product availability list -- */
 .availability-list{
   max-height:420px; overflow-y:auto;
   margin-top:8px;
@@ -866,3 +919,58 @@ input,textarea{ font-family:inherit; }
   accent-color:var(--danger); width:17px; height:17px; flex-shrink:0;
 }
 .avail-row span{ flex:1; }
+
+/* -- Admin — live orders -- */
+.orders-count-badge{
+  display:inline-block; background:var(--danger); color:#2a0a0a;
+  font-size:.7rem; font-weight:800; border-radius:999px;
+  padding:2px 9px; margin-left:8px; vertical-align:middle;
+}
+.orders-list{
+  max-height:560px; overflow-y:auto; margin-top:8px;
+  display:flex; flex-direction:column; gap:12px;
+}
+.order-card{
+  border:1px solid var(--border-soft); border-radius:var(--radius-sm);
+  padding:14px 16px; background:var(--bg-soft);
+}
+.order-card.is-new{ border-color:var(--accent); }
+.order-card-head{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:10px; margin-bottom:8px;
+}
+.order-card-head strong{ display:block; font-size:.95rem; color:var(--text); }
+.order-time{ display:block; font-size:.75rem; color:var(--text-faint); margin-top:2px; }
+.order-status-badge{
+  font-size:.72rem; font-weight:700; padding:4px 9px; border-radius:999px;
+  white-space:nowrap; flex-shrink:0;
+}
+.order-status-badge.status-new{ background:var(--accent); color:#170c04; }
+.order-status-badge.status-done{ background:var(--confirm); color:#06210f; }
+.order-contact{ font-size:.82rem; color:var(--text-muted); margin-bottom:8px; }
+.order-contact a{ color:var(--accent); text-decoration:none; }
+.order-items{
+  font-size:.85rem; color:var(--text); border-top:1px dashed var(--border-soft);
+  padding-top:8px; margin-bottom:6px;
+}
+.order-item{ padding:2px 0; }
+.order-item-supp{ font-size:.78rem; color:var(--text-faint); padding-left:14px; }
+.order-remark{ font-size:.8rem; color:var(--text-muted); font-style:italic; margin-bottom:6px; }
+.order-total{ font-weight:800; color:var(--accent); margin-bottom:10px; }
+.order-toggle-btn{ font-size:.82rem; padding:9px; }
+
+/* ==========================================================
+   17. ANIMATIONS
+   ========================================================== */
+@keyframes glowPulse{
+  0%,100%{ transform:translateY(0) scale(1); opacity:.7; }
+  50%{ transform:translateY(20px) scale(1.08); opacity:1; }
+}
+@keyframes heroFallbackFloat{
+  0%,100%{ transform:translateY(0) rotate(-2deg); }
+  50%{ transform:translateY(-16px) rotate(2deg); }
+}
+@keyframes fabPulse{
+  0%,100%{ box-shadow:0 14px 34px rgba(249,115,22,.4); }
+  50%{ box-shadow:0 14px 34px rgba(249,115,22,.65); }
+}
