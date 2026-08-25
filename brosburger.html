@@ -3,28 +3,387 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0908">
 <title>Bro's Burger — Commander en ligne</title>
 <meta name="description" content="Commandez vos burgers, philly, poutines et plus chez Bro's Burger, Camp6 Ain El Bia, Oran.">
+<meta property="og:title" content="Bro's Burger — Commander en ligne">
+<meta property="og:description" content="Commandez vos burgers, philly, poutines et plus chez Bro's Burger, Camp6 Ain El Bia, Oran.">
+<meta property="og:type" content="restaurant.menu">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- ✅ EmailJS SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="stylesheet" href="style.css">
+
+<!-- ==========================================================
+     PRO 3D ADD-ON (inline, does not touch style.css)
+     Adds: mouse-tilt on cards/buttons/social icons, hero
+     parallax depth, scroll-reveal 3D entrances, a floating
+     bob on the cart icons, a 3D pop-in for modals, and a
+     3D flip-in for the hero title. Everything respects
+     prefers-reduced-motion and fails silently if an element
+     isn't found, so it's safe to drop in as-is.
+     ========================================================== -->
+<style id="pro3d-style">
+  :root{ --p3d-depth: 900px; }
+
+  /* Give the main sections a 3D stage so child transforms look right */
+  .hero, header.topbar, footer.site-footer{
+    perspective: var(--p3d-depth);
+  }
+
+  /* Elements that get a live mouse-tilt (see script below) */
+  .ticket,
+  .btn-primary,
+  .btn-confirm,
+  .btn-ghost,
+  .cart-pill,
+  .cart-fab,
+  .social-link,
+  .p3d-tilt{
+    transform-style: preserve-3d;
+    transition: transform .18s cubic-bezier(.22,.68,.36,1), box-shadow .18s ease-out;
+    will-change: transform;
+  }
+  .ticket:hover,
+  .btn-primary:hover,
+  .btn-confirm:hover,
+  .cart-pill:hover,
+  .cart-fab:hover,
+  .social-link:hover,
+  .p3d-tilt:hover{
+    box-shadow: 0 18px 34px -14px rgba(0,0,0,.45);
+  }
+
+  /* Hero title: 3D flip-in on page load */
+  .hero-title{
+    animation: p3dHeroIn 1.1s cubic-bezier(.16,.8,.24,1) both;
+    transform-style: preserve-3d;
+  }
+  @keyframes p3dHeroIn{
+    0%{ opacity:0; transform: perspective(var(--p3d-depth)) rotateX(-70deg) translateY(24px); }
+    100%{ opacity:1; transform: perspective(var(--p3d-depth)) rotateX(0deg) translateY(0); }
+  }
+
+  /* Hero content / glow / grid get a subtle parallax via JS-set transforms */
+  .hero-content, .hero-glow, .hero-grid{
+    transform-style: preserve-3d;
+    transition: transform .12s ease-out;
+    will-change: transform;
+  }
+
+  /* Generic scroll-reveal: starts tilted back and rises into place */
+  .p3d-reveal{
+    opacity: 0;
+    transform: perspective(var(--p3d-depth)) translateY(46px) rotateX(14deg);
+    transition: opacity .7s cubic-bezier(.16,.8,.24,1), transform .7s cubic-bezier(.16,.8,.24,1);
+  }
+  .p3d-reveal.is-visible{
+    opacity: 1;
+    transform: perspective(var(--p3d-depth)) translateY(0) rotateX(0deg);
+  }
+
+  /* Floating bob for the cart icons (kept on the icon, not the button,
+     so it never fights with the button's own hover-tilt transform) */
+  .cart-pill-icon, .cart-fab-icon{
+    display: inline-block;
+    transform-style: preserve-3d;
+    animation: p3dFloat 3.2s ease-in-out infinite;
+  }
+  @keyframes p3dFloat{
+    0%, 100%{ transform: translateY(0) rotateZ(0deg); }
+    50%{ transform: translateY(-4px) rotateZ(4deg); }
+  }
+
+  /* Topbar gains subtle depth/shadow as the page scrolls (JS toggles this) */
+  header.topbar{
+    transition: transform .2s ease-out, box-shadow .2s ease-out;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
+  /* Modal 3D pop-in (JS (re)adds this class whenever a modal opens) */
+  .modal{
+    transform-style: preserve-3d;
+  }
+  .modal.p3d-pop{
+    animation: p3dModalPop .45s cubic-bezier(.16,.8,.24,1) both;
+  }
+  @keyframes p3dModalPop{
+    0%{ opacity:0; transform: perspective(var(--p3d-depth)) rotateX(-10deg) scale(.9) translateY(24px); }
+    100%{ opacity:1; transform: perspective(var(--p3d-depth)) rotateX(0deg) scale(1) translateY(0); }
+  }
+
+  /* Respect reduced-motion: kill everything above instantly */
+  @media (prefers-reduced-motion: reduce){
+    .hero-title,
+    .cart-pill-icon, .cart-fab-icon,
+    .modal.p3d-pop{ animation: none !important; }
+    .p3d-reveal{ opacity: 1 !important; transform: none !important; transition: none !important; }
+  }
+
+  /* ---- Scattered logo background layer (replaces the old ember field) ---- */
+
+  /* Full-page fixed layer holding many scattered, blurred copies of the
+     logo. Sections with solid backgrounds simply paint over it; it
+     shows through any gaps, so it needs the sections above it lifted
+     into their own stacking context. */
+  #p3dLogoBg{
+    position: fixed;
+    inset: -8%;
+    width: 116%;
+    height: 116%;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    transition: transform .15s ease-out;
+    will-change: transform;
+  }
+  #p3dLogoBg .p3d-logo-copy{
+    position: absolute;
+    background-image: url('bros-logo.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    filter: blur(6px);
+  }
+  /* Only these two actually need a boost: your real CSS gives
+     .topbar/.cart-fab/.modal-backdrop/.drawer-backdrop their own
+     sticky/fixed positioning with high z-index values already,
+     so touching them here would only risk overriding those. */
+  /* position:relative (no explicit z-index) is enough to lift these
+     above #p3dLogoBg — DOM order alone decides the paint order between
+     two z-index:auto-ish layers, and main/footer come after the logo
+     layer in the DOM. Giving main.layout its own z-index (as before)
+     turned it into a stacking context that TRAPPED its mobile cart
+     drawer (.cart-column, z-index:80) below the drawer backdrop
+     (z-index:75) and the floating cart button (z-index:70), which
+     live outside <main> — that's what made the drawer look dark and
+     unclickable on small screens. */
+  main.layout, footer.site-footer{
+    position: relative;
+  }
+
+  /* Small inline Three.js badge canvases (rotating 3D burger),
+     mounted next to the brand/title text. */
+  .p3d-badge-canvas{
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: .35em;
+    transform: translateY(-2px);
+  }
+
+  /* ---- Closed-state banner (louder than the small status pill) ---- */
+  #p3dClosedBanner{
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: .5em;
+    text-align: center;
+    background: linear-gradient(135deg, #d92b2b, #b31414);
+    color: #fff;
+    font-weight: 700;
+    font-size: .95rem;
+    padding: .7em 1em;
+    border-radius: 12px;
+    margin: 0 0 1.1em 0;
+    box-shadow: 0 10px 22px -10px rgba(185,20,20,.55);
+    animation: p3dBannerSlide .4s cubic-bezier(.16,.8,.24,1) both;
+  }
+  #p3dClosedBanner.is-visible{ display: flex; }
+  @keyframes p3dBannerSlide{
+    0%{ opacity: 0; transform: translateY(-10px); }
+    100%{ opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    #p3dClosedBanner{ animation: none; }
+  }
+
+  /* ---- Scroll cue under the hero content ---- */
+  .p3d-scroll-cue{
+    position: absolute;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    opacity: .85;
+    pointer-events: none;
+    transition: opacity .35s ease-out;
+    z-index: 1;
+  }
+  .p3d-scroll-cue.is-hidden{ opacity: 0; }
+  .p3d-scroll-cue svg{
+    width: 22px;
+    height: 22px;
+    animation: p3dChevronBounce 1.6s ease-in-out infinite;
+  }
+  .p3d-scroll-cue svg:nth-child(2){ animation-delay: .18s; opacity: .55; }
+  @keyframes p3dChevronBounce{
+    0%, 100%{ transform: translateY(0); opacity: .5; }
+    50%{ transform: translateY(7px); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .p3d-scroll-cue svg{ animation: none; }
+  }
+
+  /* ---- Cart attention pulse (fires when the item count changes) ---- */
+  @keyframes p3dCartPulse{
+    0%{ box-shadow: 0 0 0 0 rgba(249,115,22,.55); }
+    70%{ box-shadow: 0 0 0 14px rgba(249,115,22,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+  }
+  .cart-pill.p3d-pulse, .cart-fab.p3d-pulse{
+    animation: p3dCartPulse .7s ease-out;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .cart-pill.p3d-pulse, .cart-fab.p3d-pulse{ animation: none; }
+  }
+
+  /* ---- Sticky category jump-bar ---- */
+  #p3dJumpBar{
+    display: none;
+    position: sticky;
+    z-index: 5;
+    gap: 8px;
+    padding: 10px 4px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    background: rgba(20,14,9,.72);
+    backdrop-filter: blur(6px);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  #p3dJumpBar::-webkit-scrollbar{ display: none; }
+  #p3dJumpBar.is-active{ display: flex; }
+  #p3dJumpBar .p3d-jump-btn{
+    flex: 0 0 auto;
+    width: auto;
+    max-width: max-content;
+    padding: .45em 1em;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.06);
+    color: #f1e9df;
+    font-size: .82rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease, color .18s ease;
+  }
+  #p3dJumpBar .p3d-jump-btn:hover{
+    background: rgba(249,115,22,.18);
+    border-color: rgba(249,115,22,.4);
+  }
+  #p3dJumpBar .p3d-jump-btn.is-active{
+    background: #f97316;
+    border-color: #f97316;
+    color: #1a1109;
+  }
+
+  /* ==========================================================
+     RESPONSIVE ADJUSTMENTS — mirrors your own breakpoints
+     (640px / 1024px) so the add-on scales the same way the
+     rest of the site does.
+     ========================================================== */
+
+  /* Critical fix: .layout is a CSS Grid with grid-template-columns:1fr.
+     Grid items default to min-width:auto, meaning their minimum size
+     is based on their content's UNWRAPPED width — even content that
+     scrolls internally, like the jump-bar's row of category pills.
+     Without this, that pill row (700-900px unwrapped) was forcing the
+     whole grid column — and the whole page — wider than the phone
+     screen, causing mobile browsers to zoom the entire page out to
+     compensate. This resets that so the grid track sizes to the
+     viewport, not to its widest scrollable child. (style.css now also
+     sets min-width:0 on .layout directly, so this rule is redundant
+     but kept for safety in case the add-on is ever used standalone.) */
+  .menu-column, .cart-column, .layout{
+    min-width: 0;
+  }
+
+  /* Tablet and down: lighten the scattered logo field so it
+     doesn't compete visually with content on smaller screens,
+     and tighten up the banner/jump-bar spacing. */
+  @media (max-width: 1023.98px){
+    #p3dLogoBg{ transform: scale(.82); transform-origin: center; }
+  }
+
+  @media (max-width: 640px){
+    #p3dLogoBg{ transform: scale(.62); transform-origin: center; }
+
+    #p3dClosedBanner{
+      font-size: .82rem;
+      padding: .6em .8em;
+      border-radius: 10px;
+      flex-wrap: wrap;
+      line-height: 1.4;
+    }
+
+    .p3d-scroll-cue{ bottom: 16px; }
+    .p3d-scroll-cue svg{ width: 18px; height: 18px; }
+
+    #p3dJumpBar{
+      gap: 6px;
+      padding: 8px 4px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+    }
+    #p3dJumpBar .p3d-jump-btn{
+      padding: .4em .85em;
+      font-size: .78rem;
+    }
+  }
+
+  /* Very small phones: trim the hero flip-in distance a touch
+     so the title doesn't overshoot on short viewports, and
+     hide the scroll cue when the hero itself is short (landscape
+     phones, small devices) so it doesn't overlap content. */
+  @media (max-width: 380px){
+    #p3dJumpBar .p3d-jump-btn{ padding: .38em .7em; font-size: .74rem; }
+  }
+  @media (max-height: 560px){
+    .p3d-scroll-cue{ display: none; }
+  }
+
+  /* Touch devices without a real pointer (phones/tablets): the
+     mouse-tilt / parallax effects are driven by :hover and
+     mousemove, which don't make sense on touch — the JS below
+     already skips attaching those listeners on such devices, this
+     just neutralises any transform that could linger from a
+     stray touch event. */
+  @media (hover: none) and (pointer: coarse){
+    .ticket, .btn-primary, .btn-confirm, .btn-ghost,
+    .cart-pill, .cart-fab, .social-link, .p3d-tilt{
+      transform: none !important;
+    }
+  }
+</style>
 </head>
 <body>
+
+<a href="#menu" class="skip-link">Aller au menu</a>
 
 <!-- TOP BAR -->
 <header class="topbar" id="topbar">
   <div class="topbar-inner">
     <a href="#hero" class="brand">BRO'S<span>BURGER</span></a>
     <div class="topbar-right">
-      <nav class="topnav">
+      <nav class="topnav" aria-label="Navigation principale">
         <a href="#menu">Menu</a>
         <a href="#contact">Contact</a>
       </nav>
       <span class="status-pill" id="statusPill">🟢 Ouvert</span>
-      <button class="cart-pill" id="cartToggleBtn" aria-label="Voir le panier">
+      <button class="cart-pill" id="cartToggleBtn" type="button" aria-label="Voir le panier">
         <span class="cart-pill-icon">🛒</span>
         <span class="cart-pill-count" id="cartCountTop">0</span>
       </button>
@@ -37,10 +396,16 @@
   <div class="hero-glow" aria-hidden="true"></div>
   <div class="hero-grid" aria-hidden="true"></div>
   <div class="hero-content">
+    <div id="p3dClosedBanner">😴 Fermé pour le moment — repassez pendant nos horaires d'ouverture</div>
     <p class="eyebrow">📍 Camp6, Ain El Bia — Oran</p>
     <h1 class="hero-title">BRO'S<span>BURGER</span></h1>
     <p class="tagline">Des burgers frais, généreux et préparés avec passion.<br>Composez votre commande, on s'occupe du reste.</p>
     <a href="#menu" class="btn-primary">Voir le menu ↓</a>
+  </div>
+
+  <div class="p3d-scroll-cue" id="p3dScrollCue" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
   </div>
 
   <div class="hero-3d-container" id="hero3dContainer" aria-hidden="true">
@@ -52,6 +417,7 @@
 <!-- MAIN LAYOUT -->
 <main class="layout" id="menu">
   <div class="menu-column">
+    <div id="p3dJumpBar" aria-hidden="true"></div>
     <div id="menuContainer"><!-- injected by script.js --></div>
   </div>
   <aside class="cart-column">
@@ -79,7 +445,7 @@
 </main>
 
 <!-- MOBILE FLOATING CART BUTTON -->
-<button class="cart-fab" id="cartFab" hidden>
+<button class="cart-fab" id="cartFab" type="button" aria-label="Voir le panier" hidden>
   <span class="cart-fab-icon">🛒</span>
   <span class="cart-fab-info">
     <span class="cart-fab-count" id="cartFabCount">0 article</span>
@@ -153,26 +519,29 @@
             <option value="Autre">Autre (préciser)</option>
           </select>
         </label>
-        <p class="delivery-fee-note" id="deliveryFeeNote"></p>
+        <p class="delivery-fee-note" id="deliveryFeeNote" aria-live="polite"></p>
         <label id="fieldAdresseOtherLabel" hidden>Précisez votre adresse *
           <textarea name="adresseAutre" id="fieldAdresseOther" rows="2" placeholder="Quartier, rue, repère..."></textarea>
         </label>
         <label>Remarque <span class="optional">(optionnel)</span>
           <textarea name="remarque" id="fieldRemarque" rows="2" placeholder="Sans oignon, allergie, étage, etc."></textarea>
         </label>
-        <p class="form-error" id="formError" hidden></p>
+        <p class="form-error" id="formError" role="alert" aria-live="assertive" hidden></p>
         <button type="submit" class="btn-confirm btn-block" id="submitOrderBtn">Valider ma commande ✓</button>
       </form>
     </div>
 
     <!-- STEP 2: success -->
     <div id="successStep" hidden>
-      <div style="text-align:center; font-size: 3rem; margin-bottom: 1rem;">✅</div>
+      <div style="text-align:center; font-size: 3rem; margin-bottom: 1rem;" aria-hidden="true">✅</div>
       <h2>Commande envoyée !</h2>
       <p class="modal-sub">
-        📧 Un email a été envoyé automatiquement à Bro's Burger.<br><br>
-        📲 WhatsApp vient de s'ouvrir — appuyez sur <strong>Envoyer ➤</strong> pour confirmer votre commande.
+        Numéro de commande : <strong id="orderNumberDisplay">—</strong><br><br>
+        ✅ Votre commande est enregistrée chez nous, même si WhatsApp ne s'ouvre pas.<br>
+        📲 Si WhatsApp s'est ouvert, appuyez sur <strong>Envoyer ➤</strong> pour nous confirmer directement.<br>
+        📧 Une copie a aussi été envoyée par email.
       </p>
+      <a class="btn-ghost btn-block" id="callFallbackBtn" href="#" style="display:block; text-align:center; margin-bottom: .75rem;">📞 Nous appeler</a>
       <pre class="order-summary-box" id="orderSummaryBox"></pre>
       <p class="modal-note">Merci de votre confiance 🍔 Bro's Burger vous prépare ça avec amour !</p>
       <button type="button" class="btn-confirm btn-block" id="closeSuccessBtn">Fermer</button>
@@ -198,5 +567,584 @@
 <script src="script.js"></script>
 <script src="https://unpkg.com/three@0.160.1/build/three.min.js"></script>
 <script src="hero-3d.js"></script>
+
+<!-- ==========================================================
+     PRO 3D ADD-ON SCRIPT (inline, vanilla JS)
+     Two layers:
+
+     A) REAL THREE.JS 3D — reuses the same global THREE that
+        three.min.js already loaded above (for the hero burger),
+        so no extra library/network request is added. It builds
+        three small rotating 3D burger badges, each its own
+        live Three.js scene, mounted next to the brand text
+        in the topbar, the cart ticket title, and the footer.
+        The old full-page ember particle field has been replaced
+        by a blurred logo background (see part A0 below), which
+        is plain CSS + JS, no WebGL.
+
+     B) CSS tilt/reveal micro-interactions (kept from before) —
+        cheap, GPU-only transform tricks layered on top. These
+        don't require WebGL and degrade gracefully if it's
+        unavailable.
+
+     Everything here only touches elements it creates itself, or
+     reads transform/class on elements that already exist — none
+     of it talks to Firebase, EmailJS, the cart logic, or
+     WhatsApp, so it can't break any of that. Respects
+     prefers-reduced-motion throughout.
+     ========================================================== -->
+<script id="pro3d-script">
+(function () {
+  'use strict';
+
+  function onReady(fn) {
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
+  }
+
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var isTouchDevice = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  var hasWebGL = (function () {
+    try {
+      var c = document.createElement('canvas');
+      return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
+    } catch (e) { return false; }
+  })();
+
+  /* =========================================================
+     A0) Scattered logo background with subtle mouse parallax
+     ========================================================= */
+  function initLogoBackground() {
+    var bg = document.createElement('div');
+    bg.id = 'p3dLogoBg';
+    bg.setAttribute('aria-hidden', 'true');
+    document.body.insertBefore(bg, document.body.firstChild);
+
+    /* Scatter ~20 copies of the logo across a loose grid so they
+       spread evenly but each lands at a random offset/size/rotation
+       within its cell — avoids ugly clumping or big empty gaps. */
+    var COUNT = 20;
+    var cols = 5, rows = 4; // 5 x 4 = 20 cells
+    var cellW = 100 / cols, cellH = 100 / rows;
+    var i = 0;
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        if (i >= COUNT) break;
+        i++;
+        var el = document.createElement('div');
+        el.className = 'p3d-logo-copy';
+
+        var jitterX = (Math.random() - 0.5) * cellW * 0.7;
+        var jitterY = (Math.random() - 0.5) * cellH * 0.7;
+        var leftPct = c * cellW + cellW / 2 + jitterX;
+        var topPct = r * cellH + cellH / 2 + jitterY;
+
+        var size = 60 + Math.random() * 90; // 60px - 150px
+        var rot = (Math.random() - 0.5) * 50; // -25deg .. 25deg
+        var opacity = 0.05 + Math.random() * 0.09; // .05 - .14
+        var blur = 4 + Math.random() * 7; // 4px - 11px
+        var depth = 0.4 + Math.random() * 0.8; // parallax strength per item
+
+        el.style.left = leftPct + '%';
+        el.style.top = topPct + '%';
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.opacity = opacity;
+        el.style.filter = 'blur(' + blur.toFixed(1) + 'px)';
+        el.style.transform = 'translate(-50%, -50%) rotate(' + rot.toFixed(1) + 'deg)';
+        el.dataset.depth = depth.toFixed(2);
+        el.dataset.rot = rot.toFixed(1);
+
+        bg.appendChild(el);
+      }
+    }
+
+    if (reducedMotion || isTouchDevice) return; // no mouse to parallax with on touch devices
+
+    var copies = bg.querySelectorAll('.p3d-logo-copy');
+    var targetX = 0, targetY = 0, curX = 0, curY = 0, raf = null;
+
+    function onMove(e) {
+      var p = e.touches ? e.touches[0] : e;
+      targetX = (p.clientX / window.innerWidth - 0.5);
+      targetY = (p.clientY / window.innerHeight - 0.5);
+      if (!raf) raf = requestAnimationFrame(tick);
+    }
+
+    function tick() {
+      raf = null;
+      curX += (targetX - curX) * 0.08;
+      curY += (targetY - curY) * 0.08;
+      for (var k = 0; k < copies.length; k++) {
+        var el = copies[k];
+        var depth = parseFloat(el.dataset.depth);
+        var rot = el.dataset.rot;
+        var dx = curX * -30 * depth;
+        var dy = curY * -30 * depth;
+        el.style.transform = 'translate(-50%, -50%) translate3d(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px,0) rotate(' + rot + 'deg)';
+      }
+      if (Math.abs(targetX - curX) > 0.001 || Math.abs(targetY - curY) > 0.001) {
+        raf = requestAnimationFrame(tick);
+      }
+    }
+
+    window.addEventListener('mousemove', onMove, { passive: true });
+    window.addEventListener('touchmove', onMove, { passive: true });
+  }
+
+  /* =========================================================
+     A) REAL THREE.JS BADGES
+     ========================================================= */
+
+  /* ---- Small rotating 3D burger badge, mounted anywhere ---- */
+  function mountBurgerBadge(hostEl, sizePx) {
+    if (!hostEl || typeof THREE === 'undefined' || !hasWebGL) return;
+
+    var canvas = document.createElement('canvas');
+    canvas.className = 'p3d-badge-canvas';
+    canvas.width = sizePx * 2;
+    canvas.height = sizePx * 2;
+    canvas.style.width = sizePx + 'px';
+    canvas.style.height = sizePx + 'px';
+    canvas.setAttribute('aria-hidden', 'true');
+    hostEl.appendChild(canvas);
+
+    var renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+    } catch (e) { return; }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(sizePx, sizePx, false);
+    if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(36, 1, 0.1, 10);
+    camera.position.set(0, 0.85, 3.4);
+    camera.lookAt(0, 0.1, 0);
+
+    var group = new THREE.Group();
+
+    var bottomBun = new THREE.Mesh(
+      new THREE.SphereGeometry(0.9, 18, 9, 0, Math.PI * 2, Math.PI * 0.55, Math.PI * 0.45),
+      new THREE.MeshStandardMaterial({ color: 0xb87a2e, roughness: 0.7 })
+    );
+    bottomBun.scale.set(1, 0.5, 1);
+    bottomBun.rotation.x = Math.PI;
+    bottomBun.position.y = -0.4;
+    group.add(bottomBun);
+
+    var patty = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.82, 0.78, 0.2, 18),
+      new THREE.MeshStandardMaterial({ color: 0x3d2213, roughness: 0.9 })
+    );
+    patty.position.y = -0.16;
+    group.add(patty);
+
+    var cheese = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.92, 0.92, 0.05, 18),
+      new THREE.MeshStandardMaterial({ color: 0xffb823, roughness: 0.3 })
+    );
+    cheese.position.y = 0.0;
+    group.add(cheese);
+
+    var lettuce = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.96, 0.96, 0.05, 18),
+      new THREE.MeshStandardMaterial({ color: 0x5fae3d, roughness: 0.85 })
+    );
+    lettuce.position.y = 0.16;
+    group.add(lettuce);
+
+    var topBun = new THREE.Mesh(
+      new THREE.SphereGeometry(0.88, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.62),
+      new THREE.MeshStandardMaterial({ color: 0xcf8a34, roughness: 0.5 })
+    );
+    topBun.scale.set(1, 0.62, 1);
+    topBun.position.y = 0.38;
+    group.add(topBun);
+
+    scene.add(group);
+
+    scene.add(new THREE.AmbientLight(0x554433, 1.1));
+    var key = new THREE.DirectionalLight(0xffd9a0, 1.6);
+    key.position.set(2, 3, 3);
+    scene.add(key);
+    var rim = new THREE.DirectionalLight(0xff7a2e, 0.85);
+    rim.position.set(-2, 1, -2);
+    scene.add(rim);
+
+    if (reducedMotion) {
+      group.rotation.y = 0.5;
+      renderer.render(scene, camera);
+      return; // static frame only, no rAF loop
+    }
+
+    var visible = true;
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        visible = entries[0].isIntersecting;
+      }, { threshold: 0 }).observe(canvas);
+    }
+
+    var clock = new THREE.Clock();
+    function tick() {
+      requestAnimationFrame(tick);
+      if (document.hidden || !visible) return;
+      var dt = Math.min(clock.getDelta(), 0.05);
+      group.rotation.y += dt * 0.9;
+      group.rotation.x = Math.sin(clock.getElapsedTime() * 0.6) * 0.08;
+      renderer.render(scene, camera);
+    }
+    tick();
+  }
+
+  onReady(function () {
+    initLogoBackground();
+
+    var brandLink = document.querySelector('header.topbar .brand');
+    if (brandLink) mountBurgerBadge(brandLink, 26);
+
+    var footerBrand = document.querySelector('.footer-brand');
+    if (footerBrand) mountBurgerBadge(footerBrand, 30);
+  });
+
+  /* =========================================================
+     C) Closed-state banner — mirrors #statusPill, doesn't
+     replace or alter it. Purely reads its text/class so it
+     works no matter how script.js toggles open/closed.
+     ========================================================= */
+  onReady(function () {
+    var pill = document.getElementById('statusPill');
+    var banner = document.getElementById('p3dClosedBanner');
+    if (!pill || !banner) return;
+
+    function looksClosed(text) {
+      text = (text || '').toLowerCase();
+      return text.indexOf('ferm') !== -1 || text.indexOf('🔴') !== -1 || text.indexOf('😴') !== -1;
+    }
+
+    function sync() {
+      var closed = looksClosed(pill.textContent) || pill.classList.contains('closed');
+      banner.classList.toggle('is-visible', closed);
+    }
+
+    sync();
+    if ('MutationObserver' in window) {
+      new MutationObserver(sync).observe(pill, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    }
+  });
+
+  /* =========================================================
+     D) Scroll cue — visible until the user scrolls a bit,
+     then fades. Reappears if they scroll back to the very top.
+     ========================================================= */
+  onReady(function () {
+    var cue = document.getElementById('p3dScrollCue');
+    if (!cue) return;
+
+    function sync() {
+      cue.classList.toggle('is-hidden', (window.scrollY || 0) > 80);
+    }
+    sync();
+    window.addEventListener('scroll', sync, { passive: true });
+  });
+
+  /* =========================================================
+     E) Cart attention pulse — briefly pulses the cart pill/FAB
+     whenever their displayed count text changes (e.g. an item
+     was just added). Purely observes existing elements.
+     ========================================================= */
+  onReady(function () {
+    if (reducedMotion || !('MutationObserver' in window)) return;
+
+    function watchCount(countEl, targetEl) {
+      if (!countEl || !targetEl) return;
+      var lastText = countEl.textContent;
+      var mo = new MutationObserver(function () {
+        var now = countEl.textContent;
+        if (now !== lastText) {
+          lastText = now;
+          targetEl.classList.remove('p3d-pulse');
+          void targetEl.offsetWidth; // restart animation
+          targetEl.classList.add('p3d-pulse');
+        }
+      });
+      mo.observe(countEl, { childList: true, characterData: true, subtree: true });
+    }
+
+    watchCount(document.getElementById('cartCountTop'), document.getElementById('cartToggleBtn'));
+    watchCount(document.getElementById('cartFabCount'), document.getElementById('cartFab'));
+  });
+
+  /* =========================================================
+     F) Sticky category jump-bar. Detects category headings by
+     common naming patterns; if none are found, the bar simply
+     stays hidden rather than showing something wrong.
+     ========================================================= */
+  onReady(function () {
+    var jumpBar = document.getElementById('p3dJumpBar');
+    var container = document.getElementById('menuContainer');
+    if (!jumpBar || !container) return;
+
+    var HEADING_SELECTORS = '.category-title';
+
+    function getTopbarOffset() {
+      var tb = document.getElementById('topbar');
+      if (!tb) return 0;
+      var pos = window.getComputedStyle(tb).position;
+      return (pos === 'fixed' || pos === 'sticky') ? tb.offsetHeight : 0;
+    }
+
+    var sectionObserver = null;
+
+    function build() {
+      var rawHeadings = Array.prototype.slice.call(container.querySelectorAll(HEADING_SELECTORS));
+      // Dedupe: if two matched elements resolve to the same normalized
+      // text (e.g. an emoji-only element + a text element for the same
+      // category), keep only the first one.
+      var seen = {};
+      var headings = [];
+      rawHeadings.forEach(function (h) {
+        var norm = (h.textContent || '')
+          .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .toLowerCase();
+        if (!norm || seen[norm]) return;
+        seen[norm] = true;
+        headings.push(h);
+      });
+
+      jumpBar.innerHTML = '';
+      if (sectionObserver) { sectionObserver.disconnect(); sectionObserver = null; }
+
+      if (headings.length < 2) {
+        jumpBar.classList.remove('is-active');
+        return;
+      }
+
+      var offset = getTopbarOffset();
+      jumpBar.style.top = offset + 'px';
+
+      headings.forEach(function (h, idx) {
+        if (!h.id) h.id = 'p3d-cat-' + idx;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'p3d-jump-btn';
+        btn.textContent = h.textContent.trim();
+        btn.addEventListener('click', function () {
+          var y = h.getBoundingClientRect().top + window.scrollY - offset - 12;
+          window.scrollTo({ top: y, behavior: reducedMotion ? 'auto' : 'smooth' });
+        });
+        jumpBar.appendChild(btn);
+      });
+
+      jumpBar.classList.add('is-active');
+
+      if ('IntersectionObserver' in window) {
+        sectionObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            var idx = headings.indexOf(entry.target);
+            if (idx === -1) return;
+            var btns = jumpBar.querySelectorAll('.p3d-jump-btn');
+            btns.forEach(function (b) { b.classList.remove('is-active'); });
+            if (btns[idx]) btns[idx].classList.add('is-active');
+          });
+        }, { rootMargin: '-' + (offset + 20) + 'px 0px -70% 0px' });
+        headings.forEach(function (h) { sectionObserver.observe(h); });
+      }
+    }
+
+    build();
+    if ('MutationObserver' in window) {
+      new MutationObserver(function () { build(); }).observe(container, { childList: true, subtree: true });
+    }
+    window.addEventListener('resize', function () {
+      jumpBar.style.top = getTopbarOffset() + 'px';
+    }, { passive: true });
+  });
+
+  /* =========================================================
+     B) CSS tilt / scroll-reveal micro-interactions
+     ========================================================= */
+  onReady(function () {
+    if (reducedMotion) return; // respect accessibility preference, add nothing
+
+    /* ---------------------------------------------------------
+       1) Mouse-tilt: rotateX/rotateY that follows the cursor,
+          used on cards, buttons and social icons. Skipped
+          entirely on touch-only devices — there's no cursor to
+          follow, and touchmove-driven tilt just causes jank
+          while scrolling or tapping.
+       --------------------------------------------------------- */
+    function addTilt(el, max, scale) {
+      if (isTouchDevice || !el || el.__p3dTilt) return;
+      el.__p3dTilt = true;
+      max = max || 8;
+      scale = scale || 1.02;
+
+      function onMove(e) {
+        var rect = el.getBoundingClientRect();
+        var p = e.touches ? e.touches[0] : e;
+        var px = (p.clientX - rect.left) / rect.width;
+        var py = (p.clientY - rect.top) / rect.height;
+        var rx = (0.5 - py) * max * 2;
+        var ry = (px - 0.5) * max * 2;
+        el.style.transform = 'perspective(900px) rotateX(' + rx.toFixed(2) + 'deg) rotateY(' + ry.toFixed(2) + 'deg) scale(' + scale + ')';
+      }
+      function onLeave() { el.style.transform = ''; }
+
+      el.addEventListener('mousemove', onMove);
+      el.addEventListener('mouseleave', onLeave);
+    }
+
+    function tiltAll(selector, max, scale) {
+      document.querySelectorAll(selector).forEach(function (el) { addTilt(el, max, scale); });
+    }
+
+    tiltAll('.ticket', 3, 1.004);
+    tiltAll('.btn-primary, .btn-confirm, .btn-ghost', 9, 1.035);
+    tiltAll('.cart-pill, .cart-fab', 10, 1.05);
+    tiltAll('.social-link', 16, 1.15);
+    tiltAll('.p3d-tilt', 8, 1.03);
+
+    /* ---------------------------------------------------------
+       2) Menu cards: tilt + fade/rotate-in reveal, applied to
+          whatever script.js (or Firebase) injects into
+          #menuContainer — including cards added later.
+       --------------------------------------------------------- */
+    var CARD_SELECTORS = [
+      '.menu-card', '.product-card', '.dish-card', '.food-card',
+      '.menu-item', '.item-card', '.category-card'
+    ].join(', ');
+
+    function findCards(container) {
+      var cards = container.querySelectorAll(CARD_SELECTORS);
+      if (cards.length) return cards;
+      // Fallback: no known class name matched — assume the direct
+      // children of the container (or of its single wrapper) are cards.
+      var kids = Array.prototype.slice.call(container.children);
+      if (kids.length === 1 && kids[0].children.length > 1) {
+        kids = Array.prototype.slice.call(kids[0].children);
+      }
+      return kids;
+    }
+
+    var revealObserver = ('IntersectionObserver' in window) ? new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 }) : null;
+
+    function reveal(el) {
+      if (el.__p3dReveal) return;
+      el.__p3dReveal = true;
+      el.classList.add('p3d-reveal');
+      if (revealObserver) revealObserver.observe(el);
+      else el.classList.add('is-visible'); // no IO support: just show it
+    }
+
+    function enhanceMenuCards() {
+      // Intentionally left untouched — menu cards keep their original
+      // size/appearance from style.css, no reveal/tilt effects applied.
+    }
+    enhanceMenuCards();
+
+    if ('MutationObserver' in window) {
+      var menuContainer = document.getElementById('menuContainer');
+      if (menuContainer) {
+        var moMenu = new MutationObserver(function () { enhanceMenuCards(); });
+        moMenu.observe(menuContainer, { childList: true, subtree: true });
+      }
+    }
+
+    /* ---------------------------------------------------------
+       3) Scroll-reveal for the footer. (The cart ticket is
+          intentionally excluded — on desktop it's position:sticky,
+          and IntersectionObserver is unreliable on sticky elements,
+          which could leave it stuck invisible.)
+       --------------------------------------------------------- */
+    var footerEl = document.getElementById('contact');
+    if (footerEl) reveal(footerEl);
+
+    /* ---------------------------------------------------------
+       4) Hero parallax: glow/grid/content drift with the cursor.
+       --------------------------------------------------------- */
+    var hero = document.getElementById('hero');
+    if (hero) {
+      var heroGlow = hero.querySelector('.hero-glow');
+      var heroGrid = hero.querySelector('.hero-grid');
+      var heroContentEl = hero.querySelector('.hero-content');
+
+      hero.addEventListener('mousemove', function (e) {
+        var rect = hero.getBoundingClientRect();
+        var px = (e.clientX - rect.left) / rect.width - 0.5;
+        var py = (e.clientY - rect.top) / rect.height - 0.5;
+        if (heroGlow) heroGlow.style.transform = 'translate3d(' + (px * 30) + 'px,' + (py * 30) + 'px,0)';
+        if (heroGrid) heroGrid.style.transform =
+          'translate3d(' + (px * -18) + 'px,' + (py * -18) + 'px,0) rotateX(' + (py * 4) + 'deg) rotateY(' + (px * -4) + 'deg)';
+        if (heroContentEl) heroContentEl.style.transform =
+          'perspective(1000px) rotateX(' + (py * -3) + 'deg) rotateY(' + (px * 3) + 'deg)';
+      });
+      hero.addEventListener('mouseleave', function () {
+        if (heroGlow) heroGlow.style.transform = '';
+        if (heroGrid) heroGrid.style.transform = '';
+        if (heroContentEl) heroContentEl.style.transform = '';
+      });
+    }
+
+    /* ---------------------------------------------------------
+       5) Topbar gains depth (translateZ + shadow) as you scroll.
+       --------------------------------------------------------- */
+    var topbar = document.getElementById('topbar');
+    if (topbar) {
+      var ticking = false;
+      window.addEventListener('scroll', function () {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () {
+          var depth = Math.min((window.scrollY || 0) / 300, 1);
+          topbar.style.transform = 'perspective(800px) translateZ(' + (-depth * 4) + 'px)';
+          topbar.style.boxShadow = '0 ' + (6 + depth * 10) + 'px ' + (18 + depth * 20) + 'px rgba(0,0,0,' + (0.15 + depth * 0.15) + ')';
+          ticking = false;
+        });
+      }, { passive: true });
+    }
+
+    /* ---------------------------------------------------------
+       6) Modal 3D pop-in: replays the animation each time a
+          modal-backdrop becomes visible (however script.js
+          toggles it — a class or an inline display change).
+       --------------------------------------------------------- */
+    ['modalBackdrop', 'closedBackdrop'].forEach(function (backdropId) {
+      var backdrop = document.getElementById(backdropId);
+      if (!backdrop) return;
+      var modal = backdrop.querySelector('.modal');
+      if (!modal) return;
+
+      var wasOpen = false;
+      function checkOpen() {
+        var style = window.getComputedStyle(backdrop);
+        var isOpen = style.display !== 'none' && style.visibility !== 'hidden' &&
+          (backdrop.classList.contains('active') || backdrop.classList.contains('show') ||
+           backdrop.classList.contains('open') || style.display !== 'none');
+        if (isOpen && !wasOpen) {
+          modal.classList.remove('p3d-pop');
+          void modal.offsetWidth; // force reflow so the animation restarts
+          modal.classList.add('p3d-pop');
+        }
+        wasOpen = isOpen;
+      }
+      if ('MutationObserver' in window) {
+        new MutationObserver(checkOpen).observe(backdrop, { attributes: true, attributeFilter: ['class', 'style'] });
+      }
+      checkOpen();
+    });
+  });
+})();
+</script>
 </body>
 </html>
