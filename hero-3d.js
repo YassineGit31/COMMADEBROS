@@ -1,5 +1,5 @@
 /* ==========================================================
-   BRO'S BURGER — Interactive 3D Hero Burger
+   BRO'S BURGER — Interactive 3D Hero Burger (PRO EDITION)
    Self-contained, procedural Three.js burger (no .glb needed).
    - Extra-cheesy melted drips, a flame ring at the base, and a
      glowing floating "BRO'S BURGER" sign above the burger.
@@ -8,14 +8,36 @@
    - Falls back to a floating emoji if WebGL is unavailable.
    - Pauses rendering when the hero is off-screen or the tab
      is hidden, to keep things light on mobile.
+
+   PRO UPGRADE NOTES (what changed vs. the original):
+   - Filmic tone mapping + correct sRGB color management so
+     colors read as rich/contrasty instead of flat/washed out.
+   - A tiny procedural "studio" environment map (via
+     PMREMGenerator) so the glossy bun/cheese/tomato actually
+     pick up soft reflections, instead of looking like flat
+     plastic. No external HDRI file or network fetch needed.
+   - Real shadow mapping (soft PCF shadows) on top of the
+     stylized blob shadow, so the burger grounds itself
+     believably instead of floating.
+   - Sesame seeds are now individual instanced 3D capsules on
+     the bun instead of just painted highlights, so they catch
+     light and read correctly from any angle.
+   - Seared, mottled patty-side texture instead of a flat
+     brown cylinder wall.
+   - The flame ring around the base was silently disabled in
+     the original (flameCount was hardcoded to 0) — it's fixed
+     and tuned to stay cheap on mobile.
+   - Textures are power-of-two, sRGB-tagged, and anisotropically
+     filtered so text/edges stay crisp at grazing angles.
+   - Small UX polish: grab/grabbing cursor while dragging.
    ========================================================== */
 (function () {
   'use strict';
 
-  const container   = document.getElementById('hero3dContainer');
-  const canvas       = document.getElementById('burgerCanvas');
-  const fallback      = document.getElementById('heroFallback');
-  const heroSection    = document.getElementById('hero');
+  const container  = document.getElementById('hero3dContainer');
+  const canvas     = document.getElementById('burgerCanvas');
+  const fallback   = document.getElementById('heroFallback');
+  const heroSection = document.getElementById('hero');
   if (!container || !canvas || !heroSection) return;
 
   /* ---------- WebGL feature detection ---------- */
@@ -43,6 +65,7 @@
     /Mobi|Android/i.test(navigator.userAgent);
   const isLowEnd = (navigator.hardwareConcurrency || 4) <= 4;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const texSize = isMobile ? 256 : 512;
 
   /* ---------- Scene basics ---------- */
   const scene = new THREE.Scene();
@@ -65,6 +88,20 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2));
   if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
 
+  /* Filmic tone mapping gives the warm highlights (cheese, flame,
+     neon sign) a much richer, less "washed out" look. */
+  if (THREE.ACESFilmicToneMapping) {
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.12;
+  }
+
+  /* Real soft shadows, layered under the stylized blob shadow. */
+  renderer.shadowMap.enabled = true;
+  if (THREE.PCFSoftShadowMap) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const maxAniso = (renderer.capabilities && renderer.capabilities.getMaxAnisotropy)
+    ? renderer.capabilities.getMaxAnisotropy() : 1;
+
   /* ---------- Tiny canvas-texture helpers (zero external assets) ---------- */
   function makeCanvasTexture(draw, size) {
     size = size || 256;
@@ -83,8 +120,16 @@
     tex.needsUpdate = true;
     return tex;
   }
+  /* Marks a texture as color (sRGB) data and sharpens it at
+     grazing angles — call on every texture that holds "what
+     color is this surface" info (not masks/glows). */
+  function tagAsColorTexture(tex) {
+    if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = maxAniso;
+    return tex;
+  }
 
-  const bunTopTexture = makeCanvasTexture(function (ctx, s) {
+  const bunTopTexture = tagAsColorTexture(makeCanvasTexture(function (ctx, s) {
     const grad = ctx.createRadialGradient(s * 0.4, s * 0.35, s * 0.05, s * 0.5, s * 0.5, s * 0.65);
     grad.addColorStop(0, '#f0b463');
     grad.addColorStop(0.55, '#cf8a34');
@@ -103,9 +148,9 @@
       ctx.fill();
       ctx.restore();
     }
-  });
+  }, texSize));
 
-  const grillTexture = makeCanvasTexture(function (ctx, s) {
+  const grillTexture = tagAsColorTexture(makeCanvasTexture(function (ctx, s) {
     ctx.fillStyle = '#4a2716';
     ctx.fillRect(0, 0, s, s);
     ctx.strokeStyle = 'rgba(20,8,4,0.55)';
@@ -124,9 +169,27 @@
       ctx.fill();
     }
     ctx.globalAlpha = 1;
-  });
+  }, texSize));
 
-  const cheeseTexture = makeCanvasTexture(function (ctx, s) {
+  /* NEW: seared/mottled patty side wall instead of a flat brown color */
+  const pattySideTexture = tagAsColorTexture(makeCanvasTextureWH(function (ctx, w, h) {
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#5c3520');
+    grad.addColorStop(0.18, '#4a2716');
+    grad.addColorStop(0.82, '#3a1c0f');
+    grad.addColorStop(1, '#26120a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 90; i++) {
+      const x = Math.random() * w, y = Math.random() * h;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 3 + Math.random() * 6, 2 + Math.random() * 3.5, Math.random() * Math.PI, 0, Math.PI * 2);
+      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(15,6,3,0.5)' : 'rgba(120,70,35,0.35)';
+      ctx.fill();
+    }
+  }, 512, 128));
+
+  const cheeseTexture = tagAsColorTexture(makeCanvasTexture(function (ctx, s) {
     const grad = ctx.createLinearGradient(0, 0, 0, s);
     grad.addColorStop(0, '#ffe680');
     grad.addColorStop(0.5, '#ffb823');
@@ -142,7 +205,7 @@
       ctx.bezierCurveTo(x + 20, s * 0.3, x - 18, s * 0.6, x + 12, s);
       ctx.stroke();
     }
-  });
+  }, texSize));
 
   const shadowTexture = makeCanvasTexture(function (ctx, s) {
     const grad = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
@@ -202,19 +265,28 @@
     ctx.fillText(partB, startX + widthA, h * 0.52);
   }
 
-  let brandTexture = makeCanvasTextureWH(function (ctx, w, h) {
+  let brandTexture = tagAsColorTexture(makeCanvasTextureWH(function (ctx, w, h) {
     drawBrand(ctx, w, h, '800 Impact, "Arial Narrow", sans-serif');
-  }, 1024, 260);
+  }, 1024, 260));
 
   /* ---------- Materials ---------- */
-  const bunTopMat = new THREE.MeshPhysicalMaterial({ map: bunTopTexture, roughness: 0.5, clearcoat: 0.3, clearcoatRoughness: 0.4, metalness: 0.02 });
-  const bunBottomMat = new THREE.MeshPhysicalMaterial({ color: 0xb87a2e, roughness: 0.7, clearcoat: 0.15, metalness: 0.02 });
-  const pattySideMat = new THREE.MeshStandardMaterial({ color: 0x3d2213, roughness: 0.92 });
-  const pattyTopMat = new THREE.MeshStandardMaterial({ map: grillTexture, roughness: 0.85 });
-  const cheeseMat = new THREE.MeshPhysicalMaterial({ map: cheeseTexture, roughness: 0.22, clearcoat: 0.85, clearcoatRoughness: 0.2, sheen: 1, sheenColor: 0xffcf70 });
-  const sauceMat = new THREE.MeshPhysicalMaterial({ color: 0x9c2a1e, roughness: 0.25, clearcoat: 0.8 });
-  const lettuceMat = new THREE.MeshStandardMaterial({ color: 0x5fae3d, roughness: 0.82 });
-  const tomatoMat = new THREE.MeshPhysicalMaterial({ color: 0xd6432c, roughness: 0.35, clearcoat: 0.5 });
+  const bunTopMat = new THREE.MeshPhysicalMaterial({
+    map: bunTopTexture, roughness: 0.48, clearcoat: 0.35, clearcoatRoughness: 0.35,
+    metalness: 0.02, envMapIntensity: 0.7,
+  });
+  const bunBottomMat = new THREE.MeshPhysicalMaterial({
+    color: 0xb87a2e, roughness: 0.7, clearcoat: 0.15, metalness: 0.02, envMapIntensity: 0.4,
+  });
+  const pattySideMat = new THREE.MeshStandardMaterial({ map: pattySideTexture, roughness: 0.9, envMapIntensity: 0.2 });
+  const pattyTopMat = new THREE.MeshStandardMaterial({ map: grillTexture, roughness: 0.82, envMapIntensity: 0.25 });
+  const cheeseMat = new THREE.MeshPhysicalMaterial({
+    map: cheeseTexture, roughness: 0.2, clearcoat: 0.9, clearcoatRoughness: 0.15,
+    sheen: 1, sheenColor: 0xffcf70, envMapIntensity: 0.9,
+  });
+  const sauceMat = new THREE.MeshPhysicalMaterial({ color: 0x9c2a1e, roughness: 0.22, clearcoat: 0.85, envMapIntensity: 0.6 });
+  const lettuceMat = new THREE.MeshStandardMaterial({ color: 0x5fae3d, roughness: 0.82, envMapIntensity: 0.35 });
+  const tomatoMat = new THREE.MeshPhysicalMaterial({ color: 0xd6432c, roughness: 0.32, clearcoat: 0.55, envMapIntensity: 0.6 });
+  const seedMat = new THREE.MeshStandardMaterial({ color: 0xfdf0cf, roughness: 0.5, envMapIntensity: 0.5 });
   const shadowMat = new THREE.MeshBasicMaterial({ map: shadowTexture, transparent: true, depthWrite: false });
   const brandMat = new THREE.MeshBasicMaterial({ map: brandTexture, transparent: true, depthWrite: false });
 
@@ -251,17 +323,21 @@
   bottomBun.scale.set(1, 0.5, 1);
   bottomBun.rotation.x = Math.PI;
   bottomBun.position.y = -0.55;
+  bottomBun.receiveShadow = true;
   burger.add(bottomBun);
 
   const pattyGeo = new THREE.CylinderGeometry(1.28, 1.22, 0.28, 32);
   const patty = new THREE.Mesh(pattyGeo, [pattySideMat, pattyTopMat, pattySideMat]);
   patty.position.y = -0.22;
+  patty.castShadow = true;
+  patty.receiveShadow = true;
   burger.add(patty);
 
   const sauceGeo = new THREE.ExtrudeGeometry(jaggedCircleShape(1.1, 20, 0.18), { depth: 0.03, bevelEnabled: false });
   sauceGeo.rotateX(-Math.PI / 2);
   const sauce = new THREE.Mesh(sauceGeo, sauceMat);
   sauce.position.y = -0.02;
+  sauce.receiveShadow = true;
   burger.add(sauce);
 
   /* extra-cheesy: bigger, deeper drips */
@@ -272,6 +348,8 @@
   const cheese = new THREE.Mesh(cheeseGeo, cheeseMat);
   cheese.position.y = 0.04;
   cheese.rotation.y = Math.PI / 4;
+  cheese.castShadow = true;
+  cheese.receiveShadow = true;
   burger.add(cheese);
 
   /* dangling melted-cheese strands hanging over the patty */
@@ -288,13 +366,17 @@
       new THREE.Vector3(sx * 1.07, -len, sz * 1.07),
     ]);
     const tubeGeo = new THREE.TubeGeometry(curve, 10, 0.04 + Math.random() * 0.025, 7, false);
-    cheeseDrips.add(new THREE.Mesh(tubeGeo, cheeseMat));
+    const dripMesh = new THREE.Mesh(tubeGeo, cheeseMat);
+    dripMesh.castShadow = true;
+    cheeseDrips.add(dripMesh);
   }
   burger.add(cheeseDrips);
 
   const tomatoGeo = new THREE.CylinderGeometry(1.04, 1.04, 0.1, 28);
   const tomato = new THREE.Mesh(tomatoGeo, tomatoMat);
   tomato.position.y = 0.4;
+  tomato.castShadow = true;
+  tomato.receiveShadow = true;
   burger.add(tomato);
 
   const lettuceGeo = new THREE.ExtrudeGeometry(jaggedCircleShape(1.32, 24, 0.3), {
@@ -303,13 +385,54 @@
   lettuceGeo.rotateX(-Math.PI / 2);
   const lettuce = new THREE.Mesh(lettuceGeo, lettuceMat);
   lettuce.position.y = 0.24;
+  lettuce.castShadow = true;
+  lettuce.receiveShadow = true;
   burger.add(lettuce);
 
   const topBunGeo = new THREE.SphereGeometry(1.32, 30, 24, 0, Math.PI * 2, 0, Math.PI * 0.62);
   const topBun = new THREE.Mesh(topBunGeo, bunTopMat);
-  topBun.scale.set(1,0.65, 1);
+  topBun.scale.set(1, 0.65, 1);
   topBun.position.y = 0.76;
+  topBun.castShadow = true;
   burger.add(topBun);
+
+  /* NEW: real sesame seeds — instanced 3D capsules scattered across the
+     dome, standing in for the painted dots so they catch light properly. */
+  (function addSesameSeeds() {
+    const seedGeo = new THREE.SphereGeometry(0.035, 6, 5);
+    seedGeo.scale(1, 0.55, 1.8);
+    const seedCount = isMobile ? 36 : 64;
+    const seeds = new THREE.InstancedMesh(seedGeo, seedMat, seedCount);
+    seeds.castShadow = true;
+    const dummy = new THREE.Object3D();
+    const domeTopY = 0.76;         // topBun.position.y
+    const domeRadiusY = 1.32 * 0.65; // topBun radius * y-scale
+    const domeRadiusXZ = 1.32 * 0.92; // stay a bit inside the visual edge
+    let placed = 0;
+    let attempts = 0;
+    while (placed < seedCount && attempts < seedCount * 25) {
+      attempts++;
+      const r = Math.sqrt(Math.random()) * domeRadiusXZ;
+      const a = Math.random() * Math.PI * 2;
+      const x = Math.cos(a) * r;
+      const z = Math.sin(a) * r;
+      const frac = Math.min(1, r / domeRadiusXZ);
+      const yFrac = Math.sqrt(Math.max(0, 1 - frac * frac));
+      const y = domeTopY + yFrac * domeRadiusY - 0.015;
+      dummy.position.set(x, y, z);
+      dummy.rotation.set(
+        (Math.random() - 0.5) * 0.6,
+        Math.random() * Math.PI * 2,
+        (Math.random() - 0.5) * 0.6
+      );
+      dummy.scale.setScalar(0.75 + Math.random() * 0.55);
+      dummy.updateMatrix();
+      seeds.setMatrixAt(placed, dummy.matrix);
+      placed++;
+    }
+    seeds.instanceMatrix.needsUpdate = true;
+    burger.add(seeds);
+  })();
 
   const shadowMesh = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 3.6), shadowMat);
   shadowMesh.rotation.x = -Math.PI / 2;
@@ -319,9 +442,23 @@
   burger.position.y = 0.08;
   scene.add(burger);
 
+  /* NEW: a real shadow-catching ground plane (kept as a scene sibling,
+     not a child of `burger`, so it never tilts with the scroll dolly). */
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(8, 8),
+    new THREE.ShadowMaterial({ opacity: 0.32 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -0.9;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
   /* ---------- Flame ring around the base ---------- */
+  /* NOTE: the original had flameCount hardcoded to 0, which silently
+     disabled the whole flame ring despite the flicker code running
+     every frame. Re-enabled here, capped low on mobile for perf. */
   const flames = [];
-  const flameCount = isMobile ? 0 : 0;
+  const flameCount = reducedMotion ? 0 : (isMobile ? 6 : 12);
   for (let i = 0; i < flameCount; i++) {
     const mat = new THREE.SpriteMaterial({
       map: flameTexture, transparent: true, blending: THREE.AdditiveBlending,
@@ -364,19 +501,67 @@
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(function () {
       try {
-        const crisp = makeCanvasTextureWH(function (ctx, w, h) {
+        const crisp = tagAsColorTexture(makeCanvasTextureWH(function (ctx, w, h) {
           drawBrand(ctx, w, h, '800 \'Anton\', Impact, sans-serif');
-        }, 1024, 260);
+        }, 1024, 260));
         brandMat.map = crisp;
         brandMat.needsUpdate = true;
       } catch (e) { /* keep the initial fallback texture */ }
     });
   }
 
+  /* ---------- Procedural studio environment (for reflections) ---------- */
+  /* Gives the glossy clearcoat/sheen materials (bun, cheese, tomato) real
+     soft reflections instead of looking flat, with zero network requests —
+     it's a tiny gradient rendered to an equirect texture and convolved
+     with PMREMGenerator, exactly like baking a 1-pixel-wide HDRI. */
+  let envRenderTarget = null;
+  if (THREE.PMREMGenerator) {
+    try {
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      if (pmrem.compileEquirectangularShader) pmrem.compileEquirectangularShader();
+
+      const envCanvas = document.createElement('canvas');
+      envCanvas.width = 4; envCanvas.height = 256;
+      const ectx = envCanvas.getContext('2d');
+      const egrad = ectx.createLinearGradient(0, 0, 0, 256);
+      egrad.addColorStop(0, '#4a3420');
+      egrad.addColorStop(0.42, '#8a5628');
+      egrad.addColorStop(0.52, '#e0913f');
+      egrad.addColorStop(0.62, '#8a5628');
+      egrad.addColorStop(1, '#100a06');
+      ectx.fillStyle = egrad;
+      ectx.fillRect(0, 0, 4, 256);
+      const envTex = new THREE.CanvasTexture(envCanvas);
+      envTex.mapping = THREE.EquirectangularReflectionMapping;
+      if (THREE.SRGBColorSpace) envTex.colorSpace = THREE.SRGBColorSpace;
+      envTex.needsUpdate = true;
+
+      envRenderTarget = pmrem.fromEquirectangular(envTex);
+      scene.environment = envRenderTarget.texture;
+
+      envTex.dispose();
+      pmrem.dispose();
+    } catch (e) {
+      /* Environment reflections are optional polish — safe to skip
+         on older three.js builds or constrained contexts. */
+    }
+  }
+
   /* ---------- Lighting (warm, premium, orange-branded) ---------- */
-  scene.add(new THREE.AmbientLight(0x3a2a1c, 0.95));
+  scene.add(new THREE.AmbientLight(0x3a2a1c, 0.6));
   const keyLight = new THREE.DirectionalLight(0xffd9a0, 1.7);
   keyLight.position.set(3, 5, 4);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(isMobile ? 512 : 1024, isMobile ? 512 : 1024);
+  keyLight.shadow.camera.near = 1;
+  keyLight.shadow.camera.far = 12;
+  keyLight.shadow.camera.left = -3;
+  keyLight.shadow.camera.right = 3;
+  keyLight.shadow.camera.top = 3;
+  keyLight.shadow.camera.bottom = -3;
+  keyLight.shadow.bias = -0.0018;
+  keyLight.shadow.radius = 3;
   scene.add(keyLight);
   const rimLight = new THREE.DirectionalLight(0xff7a2e, 0.95);
   rimLight.position.set(-4, 2, -3);
@@ -437,9 +622,12 @@
   let autoRotate = true;
   let resumeAutoTimer = null;
 
+  canvas.style.cursor = 'grab';
+
   function pointerDown(e) {
     isDragging = true;
     autoRotate = false;
+    canvas.style.cursor = 'grabbing';
     if (resumeAutoTimer) clearTimeout(resumeAutoTimer);
     const p = e.touches ? e.touches[0] : e;
     lastX = p.clientX; lastY = p.clientY;
@@ -459,6 +647,7 @@
   function pointerUp() {
     if (!isDragging) return;
     isDragging = false;
+    canvas.style.cursor = 'grab';
     resumeAutoTimer = setTimeout(function () { autoRotate = true; }, 2200);
   }
 
@@ -565,4 +754,11 @@
     renderer.render(scene, camera);
   }
   animate();
+
+  /* ---------- Cleanup on unload (avoid leaking GPU memory in SPAs) ---------- */
+  window.addEventListener('beforeunload', function () {
+    if (rafId) cancelAnimationFrame(rafId);
+    if (envRenderTarget) envRenderTarget.dispose();
+    renderer.dispose();
+  });
 })();
