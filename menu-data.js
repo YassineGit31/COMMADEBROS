@@ -106,6 +106,23 @@ const MENU = [
         supplements:[SUPP_POULET, SUPP_ANANAS, SUPP_SAUCE] },
     ]
   },
+     {
+    category: "Pâtes",
+    icon: "🍝",
+    items: [
+      { id:"pasta-bolognaise", name:"Bolognaise", price:600,
+        desc:["Penne","Sauce bolognaise","Viande hachée","Gruyère","Basilic","Tomate cerise"],
+        supplements:[SUPP_GRUYERE, SUPP_VIANDE, SUPP_SAUCE] },
+
+      { id:"pasta-carbonara", name:"Carbonara", price:600,
+        desc:["Penne","Sauce blanche","Escalope de poulet","Poulet fumé","Champignons frais","Gruyère","Basilic","Tomate cerise"],
+        supplements:[SUPP_GRUYERE, SUPP_POULET, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
+
+      { id:"pasta-pane", name:"Pané (Crispy)", price:650,
+        desc:["Penne","Sauce blanche","Escalope de poulet","Poulet crispy","Champignons frais","Gruyère","Basilic","Tomate cerise"],
+        supplements:[SUPP_GRUYERE, SUPP_POULET, SUPP_CHAMPIGNONS, SUPP_SAUCE] },
+    ]
+  },
   {
     category: "Tenders",
     icon: "🍗",
