@@ -38,7 +38,7 @@ const OPENING_HOURS = {
     },
     {
       start: 17 * 60 + 30,
-      end: 23 * 60 + 30,
+      end: 22 * 60 + 30,
       label: "17h30 – 23h30"
     }
   ],
@@ -47,7 +47,7 @@ const OPENING_HOURS = {
   weekend: [
     {
       start: 18 * 60,
-      end: 23 * 60 + 30,
+      end: 22 * 60 + 30,
       label: "18h00 – 23h30"
     }
   ]
